@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+use Dotenv\Dotenv;
+use Illuminate\Foundation\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+// Register the Composer autoloader...
+require __DIR__ . '/vendor/autoload.php';
+// In local development, allow .env to override system environment variables
+// so the app and CLI commands use project mail settings instead of Windows defaults.
+$envPath = __DIR__;
+if (file_exists($envPath . '/.env')) {
+    Dotenv::createMutable($envPath)->load();
+}
+// Bootstrap Laravel and handle the command...
+/** @var Application $app */
+$app = require_once __DIR__ . '/bootstrap/app.php';
+
+$status = $app->handleCommand(new ArgvInput);
+
+exit($status);

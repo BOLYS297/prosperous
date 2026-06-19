@@ -1,0 +1,11 @@
+nom,reference,prix_achat,prix_vente,image
+"Pneu Moto 100/90-18","PNEU-001",25000,35000,
+"Batterie Moto 12V 5Ah","BATT-001",15000,22000,
+"Plaquettes de frein","FREIN-001",5000,8000,
+"Filtre à air","FILTRE-001",3000,5000,
+"Chaîne de transmission","CHAINE-001",12000,18000,
+"Ampoule H4 12V 60/55W","AMPOULE-001",2500,4500,
+"Courroie de transmission","COURROIE-001",8000,12000,
+"Liquide de freins","LIQUIDE-FREIN-001",3500,6000,
+"Huile moteur 10W30","HUILE-001",4000,7000,
+"Bougie d'allumage","BOUGIE-001",1500,3000,
