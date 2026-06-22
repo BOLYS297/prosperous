@@ -1,0 +1,17 @@
+# Caddy : termine le TLS et transmet à l'application (Nginx du conteneur app).
+# {$APP_DOMAIN} et {$ACME_EMAIL} proviennent du fichier .env.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode gzip zstd
+
+	# Transmet la vraie IP du client et le schéma https à Laravel
+	reverse_proxy app:80 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+}

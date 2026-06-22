@@ -1,0 +1,29 @@
+name: Déploiement Production
+
+# Déclenché à chaque push sur main (ou manuellement depuis l'onglet Actions)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Déployer sur le VPS Hostinger
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connexion SSH + déploiement
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          command_timeout: 20m
+          script: |
+            cd /opt/prosperous
+            bash deploy.sh
