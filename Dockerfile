@@ -2,18 +2,26 @@
 
 ############################################
 # Stage 1 — Dépendances PHP (Composer)
+# On utilise PHP 8.2 (et non le PHP par défaut de l'image composer, trop récent
+# pour les versions verrouillées dans composer.lock) + le binaire composer.
 ############################################
-FROM composer:2 AS vendor
+FROM php:8.2-cli-bookworm AS vendor
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN apt-get update && apt-get install -y --no-install-recommends git unzip \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY composer.json composer.lock ./
 COPY . .
+# --ignore-platform-reqs : les extensions PHP réelles sont présentes dans
+# l'image d'exécution (stage runtime), pas besoin de les installer ici.
 RUN composer install \
         --no-dev \
         --no-scripts \
         --no-interaction \
         --no-progress \
         --prefer-dist \
-        --optimize-autoloader
+        --optimize-autoloader \
+        --ignore-platform-reqs
 
 ############################################
 # Stage 2 — Build des assets front (Vite)
