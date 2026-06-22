@@ -5,6 +5,7 @@ const STORES = {
     PRODUCTS: "products",
     STOCKS: "stocks",
     SYNC_QUEUE: "sync_queue",
+    SALES: "sales",
 };
 
 function openDatabase() {
@@ -37,6 +38,10 @@ function openDatabase() {
                     keyPath: "id",
                     autoIncrement: true,
                 });
+            }
+
+            if (!db.objectStoreNames.contains(STORES.SALES)) {
+                db.createObjectStore(STORES.SALES, { keyPath: "id" });
             }
         };
 
@@ -107,6 +112,38 @@ export async function saveOfflineData(data) {
     if (Array.isArray(data.stocks)) {
         await saveItems(STORES.STOCKS, data.stocks);
     }
+
+    if (Array.isArray(data.ventes)) {
+        await saveSales(data.ventes);
+    }
+}
+
+export async function saveSales(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return;
+    }
+
+    return withStore(STORES.SALES, "readwrite", (store) => {
+        items.forEach((item) => {
+            store.put(item);
+        });
+    });
+}
+
+export async function getSalesByDate(dateString) {
+    // dateString expected in YYYY-MM-DD
+    const all = await getAllItems(STORES.SALES);
+    if (!all || all.length === 0) return [];
+    return all.filter((s) => {
+        if (!s.created_at) return false;
+        return s.created_at.startsWith(dateString);
+    });
+}
+
+export async function clearSales() {
+    return withStore(STORES.SALES, "readwrite", (store) => {
+        store.clear();
+    });
 }
 
 export async function getOfflineData() {
@@ -132,4 +169,14 @@ export async function removeSyncQueueItem(id) {
     return withStore(STORES.SYNC_QUEUE, "readwrite", (store) => {
         store.delete(id);
     });
+}
+
+// Expose helpful functions globally for pages that need to access IndexedDB
+if (typeof window !== "undefined") {
+    window.Idb = window.Idb || {};
+    window.Idb.saveOfflineData = saveOfflineData;
+    window.Idb.getOfflineData = getOfflineData;
+    window.Idb.getSyncQueueItems = getSyncQueueItems;
+    window.Idb.getSalesByDate = getSalesByDate;
+    window.Idb.saveSales = saveSales;
 }

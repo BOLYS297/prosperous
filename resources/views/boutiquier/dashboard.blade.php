@@ -214,7 +214,7 @@
                 <div class="text-3xl font-black text-slate-900" id="cart-total">0 FCFA</div>
             </div>
 
-            <form id="checkout-form" method="POST" action="{{ route('boutiquier.ventes.store') }}" class="mt-6">
+            <form id="checkout-form" method="POST" action="{{ route('boutiquier.ventes.store') }}" class="mt-6" data-offline-sync="true">
                 @csrf
                 <input type="hidden" name="is_grossiste" id="checkout-is-grossiste" value="0">
                 <input type="hidden" name="grossiste_id" id="checkout-grossiste-id" value="">

@@ -55,7 +55,13 @@ function buildQueueDescription(item) {
 
     let parsed = null;
     try {
-        parsed = typeof body === "string" ? JSON.parse(body) : body;
+        if (typeof body === "string" && body.trim().startsWith("{")) {
+            parsed = JSON.parse(body);
+        } else if (typeof body === "string") {
+            parsed = Object.fromEntries(new URLSearchParams(body));
+        } else {
+            parsed = body;
+        }
     } catch (error) {
         return item.url;
     }
@@ -205,23 +211,22 @@ function getCsrfToken() {
     return token ? token.content : "";
 }
 
-function formDataToObject(formData) {
-    const data = {};
-    for (const [key, value] of formData.entries()) {
-        if (value instanceof File || value instanceof Blob) {
-            continue;
-        }
-
-        if (data[key] !== undefined) {
-            if (!Array.isArray(data[key])) {
-                data[key] = [data[key]];
-            }
-            data[key].push(value);
-        } else {
-            data[key] = value;
-        }
+function formDataToPayload(formData) {
+    if (formData instanceof FormData) {
+        return new URLSearchParams(formData).toString();
     }
-    return data;
+
+    const payload = new URLSearchParams();
+    Object.entries(formData || {}).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+            value.forEach((item) => {
+                payload.append(key, item);
+            });
+        } else if (value !== undefined && value !== null) {
+            payload.append(key, String(value));
+        }
+    });
+    return payload.toString();
 }
 
 function hasFileInputsWithFiles(form) {
@@ -398,16 +403,16 @@ document.addEventListener("submit", async (event) => {
     }
 
     const formData = new FormData(form);
-    const payload = formDataToObject(formData);
     const token = getCsrfToken();
-    if (token && !payload._token) {
-        payload._token = token;
+    if (token && !formData.has("_token")) {
+        formData.append("_token", token);
     }
+    const payload = formDataToPayload(formData);
 
     const success = await queueOfflineRequest(form.action, {
         method: form.method || "POST",
         headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
             "X-CSRF-TOKEN": token,
         },
         body: payload,
@@ -415,6 +420,20 @@ document.addEventListener("submit", async (event) => {
 
     if (success) {
         markFormOfflineSaved(form);
+        window.dispatchEvent(
+            new CustomEvent("pwa-offline-form-saved", {
+                detail: {
+                    formId: form.id,
+                    formAction: form.action,
+                },
+            }),
+        );
+
+        if (form.id === "checkout-form") {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
+        }
     } else {
         dispatchOfflineStatus({
             title: "Action hors-ligne échouée",

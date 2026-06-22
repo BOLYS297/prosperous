@@ -40,7 +40,8 @@
                     <th class="p-4 font-semibold text-center">Actions</th>
                 </tr>
             </thead>
-            <tbody class="text-sm">
+            <tbody id="historique-tbody" class="text-sm">
+                {{-- Contenu rendu côté serveur si présent; sera remplacé en hors-ligne --}}
                 @forelse($ventes as $vente)
                     @foreach($vente->lignes as $ligne)
                     <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
@@ -80,4 +81,61 @@
         </table>
     </div>
 </div>
+<script>
+    (function () {
+        const tbody = document.getElementById('historique-tbody');
+        if (!tbody) return;
+
+        function renderRows(ventes) {
+            if (!ventes || ventes.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-12 text-center text-slate-500">
+                            <i class="ri-inbox-line text-4xl block mb-2"></i>
+                            Aucune vente enregistrée aujourd'hui.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const rows = [];
+            ventes.forEach((v) => {
+                const createdAt = new Date(v.created_at);
+                const timeLabel = createdAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                v.lignes.forEach((ligne, idx) => {
+                    const montant = (ligne.quantite * ligne.prix_unitaire) || 0;
+                    rows.push(`
+                        <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
+                            <td class="p-4 text-slate-500"> <i class="ri-time-line mr-1"></i> ${timeLabel} </td>
+                            <td class="p-4 font-bold text-slate-800"> ${ligne.produit?.nom || '—'} </td>
+                            <td class="p-4 text-center font-bold text-slate-700"> ${ligne.quantite} </td>
+                            <td class="p-4 text-right font-black text-blue-600"> ${new Intl.NumberFormat('fr-FR').format(montant)} FCFA </td>
+                            ${idx === 0 ? `<td class="p-4 text-center" rowspan="${v.lignes.length}"><a href="/boutiquier/ventes/${v.id}" class="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Actions</a></td>` : ''}
+                        </tr>
+                    `);
+                });
+            });
+
+            tbody.innerHTML = rows.join('\n');
+        }
+
+        async function tryRenderFromIndexedDb() {
+            if (!window.Idb || !window.Idb.getSalesByDate) {
+                // wait briefly for bundled scripts to initialize
+                setTimeout(tryRenderFromIndexedDb, 200);
+                return;
+            }
+
+            if (navigator.onLine) return; // prefer server-rendered when online
+
+            // date string YYYY-MM-DD from server time
+            const today = '{{ now()->toDateString() }}';
+            const ventes = await window.Idb.getSalesByDate(today);
+            renderRows(ventes);
+        }
+
+        document.addEventListener('DOMContentLoaded', tryRenderFromIndexedDb);
+    })();
+</script>
 @endsection
