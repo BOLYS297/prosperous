@@ -21,11 +21,7 @@ class GrossisteSeeder extends Seeder
                 'contact' => '0781234567',
             ],
             // Exemple 2 - À remplacer avec vos données
-            [
-                'nom' => 'Grossiste Dakar Auto',
-                'code' => 'GROSS-002',
-                'contact' => '0782345678',
-            ],
+            
             // ========================================
             // AJOUTEZ VOS GROSSISTES CI-DESSOUS
             // ========================================
