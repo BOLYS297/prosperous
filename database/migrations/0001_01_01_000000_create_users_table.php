@@ -13,7 +13,10 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('boutique_id')->nullable()->constrained('boutiques')->onDelete('set null');
+            // La clé étrangère vers "boutiques" est ajoutée plus tard
+            // (2026_05_13_221000_add_boutique_fk_to_users_table) car la table
+            // "boutiques" n'existe pas encore à ce stade des migrations.
+            $table->foreignId('boutique_id')->nullable()->index();
             $table->string('nom_utilisateur')->unique();
             $table->string('email')->unique();
             $table->string('password');

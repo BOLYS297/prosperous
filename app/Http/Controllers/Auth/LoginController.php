@@ -78,12 +78,17 @@ class LoginController extends Controller
 
                         $adminUsers = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
                         if ($adminUsers->isNotEmpty()) {
-                            Notification::send($adminUsers, new AdminValidationNotification(
-                                'Validation de déduction salariale requise',
-                                "Une nouvelle déduction salariale de {$deduction->amount} FCFA est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
-                                'Voir les déductions',
-                                route('admin.dashboard')
-                            ));
+                            try {
+                                Notification::send($adminUsers, new AdminValidationNotification(
+                                    'Validation de déduction salariale requise',
+                                    "Une nouvelle déduction salariale de {$deduction->amount} FCFA est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
+                                    'Voir les déductions',
+                                    route('admin.dashboard')
+                                ));
+                            } catch (\Throwable $e) {
+                                // Ne jamais bloquer la connexion à cause d'une notification
+                                report($e);
+                            }
                         }
                     }
                 }
@@ -172,12 +177,17 @@ class LoginController extends Controller
         // Notifier les administrateurs pour validation (comme pour les connexions tardives)
         $adminUsers = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
         if ($adminUsers->isNotEmpty()) {
-            Notification::send($adminUsers, new AdminValidationNotification(
-                'Validation de déduction salariale requise',
-                "Une nouvelle déduction salariale de {$deductionAmount} FCFA est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
-                'Voir les déductions',
-                route('admin.dashboard')
-            ));
+            try {
+                Notification::send($adminUsers, new AdminValidationNotification(
+                    'Validation de déduction salariale requise',
+                    "Une nouvelle déduction salariale de {$deductionAmount} FCFA est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
+                    'Voir les déductions',
+                    route('admin.dashboard')
+                ));
+            } catch (\Throwable $e) {
+                // Ne jamais bloquer la déconnexion à cause d'une notification
+                report($e);
+            }
         }
     }
 }

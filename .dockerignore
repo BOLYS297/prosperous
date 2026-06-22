@@ -1,0 +1,46 @@
+.git
+.github
+.gitignore
+.gitattributes
+.editorconfig
+
+# Dépendances reconstruites pendant le build
+vendor
+node_modules
+
+# Secrets / état local
+.env
+.env.backup
+.env.production
+auth.json
+
+# Artefacts de build & cache
+public/build
+public/hot
+public/storage
+bootstrap/cache/*.php
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/pail
+.phpunit.cache
+.phpunit.result.cache
+
+# Scripts de debug à la racine (non nécessaires en prod)
+debug*.php
+debug*.txt
+debug*.html
+check_*.php
+test_*.php
+add_col.php
+seed.php
+send_test_mail.php
+inspect_status.php
+error*.html
+
+# Divers
+.DS_Store
+Thumbs.db
+README.md
+DEPLOYMENT.md
