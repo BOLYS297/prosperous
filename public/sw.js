@@ -1,9 +1,17 @@
-const CACHE_NAME = "prosperous-motos-cache-v2";
+const CACHE_NAME = "prosperous-motos-cache-v3";
 const OFFLINE_URL = "/offline.html";
 // Fichiers essentiels. /build/manifest.json n'est PAS ici : selon la version de
 // Vite, le manifeste est à /build/manifest.json OU /build/.vite/manifest.json.
 // On le gère séparément, de façon tolérante (voir MANIFEST_CANDIDATES).
-const PRECACHE_URLS = ["/", OFFLINE_URL, "/logo.jpg", "/manifest.webmanifest"];
+const PRECACHE_URLS = [
+    "/",
+    OFFLINE_URL,
+    "/logo.jpg",
+    "/manifest.webmanifest",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/icon-512-maskable.png",
+];
 const MANIFEST_CANDIDATES = [
     "/build/.vite/manifest.json",
     "/build/manifest.json",
@@ -155,6 +163,13 @@ self.addEventListener("fetch", function (event) {
 
     const request = event.request;
     const url = new URL(request.url);
+
+    // Ignore les schémas non-http (chrome-extension://, etc.) : la Cache API ne
+    // les supporte pas -> évite "Request scheme 'chrome-extension' is unsupported".
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return;
+    }
+
     const isSameOrigin = url.origin === self.location.origin;
     const isBuildAsset = isSameOrigin && url.pathname.startsWith("/build/");
 
