@@ -211,6 +211,34 @@ function getCsrfToken() {
     return token ? token.content : "";
 }
 
+// Remplace le jeton CSRF (_token) dans le corps d'une requête mise en file,
+// car celui capturé hors-ligne peut être périmé au moment de la synchro.
+function replaceCsrfInBody(body, token) {
+    if (typeof body !== "string" || !body || !token) {
+        return body;
+    }
+
+    if (body.includes("_token=")) {
+        const params = new URLSearchParams(body);
+        params.set("_token", token);
+        return params.toString();
+    }
+
+    if (body.trim().startsWith("{")) {
+        try {
+            const obj = JSON.parse(body);
+            if (Object.prototype.hasOwnProperty.call(obj, "_token")) {
+                obj._token = token;
+                return JSON.stringify(obj);
+            }
+        } catch (error) {
+            return body;
+        }
+    }
+
+    return body;
+}
+
 function formDataToPayload(formData) {
     if (formData instanceof FormData) {
         return new URLSearchParams(formData).toString();
@@ -338,17 +366,20 @@ export async function syncQueuedRequests() {
                     ...item.headers,
                 };
 
-                if (!headers["X-CSRF-TOKEN"] && !headers["x-csrf-token"]) {
-                    const csrfToken = getCsrfToken();
-                    if (csrfToken) {
-                        headers["X-CSRF-TOKEN"] = csrfToken;
-                    }
+                // Toujours utiliser le jeton CSRF COURANT (le jeton stocké
+                // hors-ligne peut être périmé) -> évite les erreurs 419.
+                const csrfToken = getCsrfToken();
+                let body = item.body;
+                if (csrfToken) {
+                    delete headers["x-csrf-token"];
+                    headers["X-CSRF-TOKEN"] = csrfToken;
+                    body = replaceCsrfInBody(body, csrfToken);
                 }
 
                 const response = await fetch(item.url, {
                     method: item.method,
                     headers,
-                    body: item.body,
+                    body,
                     credentials: "same-origin",
                 });
 

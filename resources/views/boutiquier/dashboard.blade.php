@@ -153,11 +153,14 @@
         <h3 class="text-lg font-bold text-slate-700 flex items-center gap-2">
             <i class="ri-grid-line text-blue-500"></i> Saisir une vente directement depuis la liste des produits
         </h3>
-        <form action="{{ route('boutiquier.dashboard') }}" method="GET" class="w-full md:w-1/2">
+        <form id="produit-search-form" action="{{ route('boutiquier.dashboard') }}" method="GET" class="w-full md:w-1/2" role="search">
             <label for="q" class="sr-only">Rechercher produit</label>
             <div class="relative">
-                <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" placeholder="Rechercher un produit à vendre..." class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" autocomplete="off" placeholder="Rechercher un produit à vendre..." class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pl-10 pr-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                 <i class="ri-search-line absolute left-3 top-3 text-slate-400"></i>
+                <button type="button" id="q-clear" class="absolute right-3 top-2.5 hidden text-slate-400 hover:text-slate-600" aria-label="Effacer la recherche">
+                    <i class="ri-close-circle-line text-lg"></i>
+                </button>
             </div>
         </form>
     </div>
@@ -232,7 +235,7 @@
                 $stock = $produit->stocks->first();
                 $enStock = $stock && $stock->quantite > 0;
             @endphp
-            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-in-stock="{{ $enStock ? 1 : 0 }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
+            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
                 <div class="flex-1">
                     @if($produit->image)
                         <img src="{{ asset('storage/' . $produit->image) }}" alt="{{ $produit->nom }}" class="object-cover rounded-2xl mb-4 w-50 h-40" style="max-height: 12rem;">
@@ -278,6 +281,11 @@
                 <p>Aucun produit n'est encore enregistré dans votre boutique.</p>
             </div>
         @endforelse
+    </div>
+
+    <div id="search-no-results" class="hidden glass-panel rounded-2xl p-12 text-center text-slate-500">
+        <i class="ri-search-eye-line text-5xl mb-3"></i>
+        <p>Aucun produit ne correspond à votre recherche.</p>
     </div>
 </div>
 @php
@@ -497,6 +505,57 @@
 
         if (clearCartButton) {
             clearCartButton.addEventListener('click', clearCart);
+        }
+
+        // --- Recherche instantanée côté client (filtre la grille, aucun rechargement) ---
+        const searchInput = document.getElementById('q');
+        const searchForm = document.getElementById('produit-search-form');
+        const searchClear = document.getElementById('q-clear');
+        const noResults = document.getElementById('search-no-results');
+
+        function normalizeText(value) {
+            // Insensible aux accents : "moteur" trouve "Moteur", "démarreur" trouve "demarreur"
+            return (value || '')
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function applyProductFilter() {
+            const term = normalizeText(searchInput ? searchInput.value.trim() : '');
+            let visible = 0;
+            productCards.forEach(card => {
+                const haystack = normalizeText(card.getAttribute('data-search'));
+                const match = term === '' || haystack.includes(term);
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            if (noResults) {
+                noResults.classList.toggle('hidden', visible !== 0 || productCards.length === 0);
+            }
+            if (searchClear) {
+                searchClear.classList.toggle('hidden', term === '');
+            }
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applyProductFilter);
+            // Entrée ne recharge plus la page : on filtre en direct
+            if (searchForm) {
+                searchForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    applyProductFilter();
+                });
+            }
+            if (searchClear) {
+                searchClear.addEventListener('click', () => {
+                    searchInput.value = '';
+                    applyProductFilter();
+                    searchInput.focus();
+                });
+            }
+            applyProductFilter();
         }
 
         cartItemsContainer.addEventListener('click', (event) => {

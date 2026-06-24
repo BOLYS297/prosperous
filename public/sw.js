@@ -1,10 +1,11 @@
-const CACHE_NAME = "prosperous-motos-cache-v1";
+const CACHE_NAME = "prosperous-motos-cache-v2";
 const OFFLINE_URL = "/offline.html";
-const PRECACHE_URLS = [
-    "/",
-    OFFLINE_URL,
-    "/logo.jpg",
-    "/manifest.webmanifest",
+// Fichiers essentiels. /build/manifest.json n'est PAS ici : selon la version de
+// Vite, le manifeste est à /build/manifest.json OU /build/.vite/manifest.json.
+// On le gère séparément, de façon tolérante (voir MANIFEST_CANDIDATES).
+const PRECACHE_URLS = ["/", OFFLINE_URL, "/logo.jpg", "/manifest.webmanifest"];
+const MANIFEST_CANDIDATES = [
+    "/build/.vite/manifest.json",
     "/build/manifest.json",
 ];
 
@@ -39,26 +40,35 @@ self.addEventListener("install", function (event) {
     event.waitUntil(
         (async function () {
             const cache = await caches.open(CACHE_NAME);
-            await cache.addAll(PRECACHE_URLS);
 
-            try {
-                const manifestResponse = await fetch("/build/manifest.json");
-                if (manifestResponse && manifestResponse.ok) {
+            // Pré-cache RÉSILIENT : chaque fichier est mis en cache indépendamment.
+            // Une 404 (ex. un fichier absent) ne doit JAMAIS faire échouer
+            // l'installation du service worker (bug historique de cache.addAll).
+            await Promise.all(
+                PRECACHE_URLS.map((url) => cache.add(url).catch(() => null)),
+            );
+
+            // Découverte du manifeste Vite : on essaie les deux emplacements connus.
+            for (const manifestUrl of MANIFEST_CANDIDATES) {
+                try {
+                    const manifestResponse = await fetch(manifestUrl, {
+                        cache: "no-store",
+                    });
+                    if (!manifestResponse || !manifestResponse.ok) {
+                        continue;
+                    }
+                    await cache.put(manifestUrl, manifestResponse.clone());
                     const manifest = await manifestResponse.json();
                     const buildUrls = getBuildAssetUrlsFromManifest(manifest);
                     await Promise.all(
                         buildUrls.map((assetUrl) =>
-                            cache.add(assetUrl).catch(() => {
-                                return null;
-                            }),
+                            cache.add(assetUrl).catch(() => null),
                         ),
                     );
+                    break; // manifeste trouvé et traité, on s'arrête
+                } catch (error) {
+                    // emplacement suivant
                 }
-            } catch (error) {
-                console.warn(
-                    "Service Worker: failed to cache build manifest assets",
-                    error,
-                );
             }
         })(),
     );
