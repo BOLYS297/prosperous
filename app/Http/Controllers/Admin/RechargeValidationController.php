@@ -109,11 +109,23 @@ class RechargeValidationController extends Controller
             $quantite = $useFullQuantity ? $ligne->quantite_envoyee : $ligne->quantite_recue;
 
             if ($quantite > 0) {
-                $stock = \App\Models\Stock::firstOrCreate(
-                    ['boutique_id' => $recharge->destination_id, 'produit_id' => $ligne->produit_id],
-                    ['quantite' => 0]
+                $produit = \App\Models\Produit::find($ligne->produit_id);
+                $achatLigne = null;
+                if ($recharge->achat_id) {
+                    $achatLigne = \App\Models\AchatLigne::where('achat_id', $recharge->achat_id)
+                        ->where('produit_id', $ligne->produit_id)
+                        ->first();
+                }
+
+                \App\Models\Stock::addBatch(
+                    $recharge->destination_id,
+                    $ligne->produit_id,
+                    $quantite,
+                    $achatLigne?->prix_unitaire ?? $produit?->prix_achat ?? 0,
+                    $achatLigne?->prix_vente ?? $produit?->prix_vente ?? $achatLigne?->prix_unitaire ?? 0,
+                    'recharge',
+                    $recharge->id
                 );
-                $stock->increment('quantite', $quantite);
             }
         }
     }

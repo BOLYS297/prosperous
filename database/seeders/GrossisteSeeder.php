@@ -16,12 +16,12 @@ class GrossisteSeeder extends Seeder
         $grossistes = [
             // Exemple 1 - À remplacer avec vos données
             [
-                'nom' => 'Grossiste Sud Moto',
+                'nom' => 'Grossiste',
                 'code' => 'GROSS-001',
                 'contact' => '0781234567',
             ],
             // Exemple 2 - À remplacer avec vos données
-            
+
             // ========================================
             // AJOUTEZ VOS GROSSISTES CI-DESSOUS
             // ========================================

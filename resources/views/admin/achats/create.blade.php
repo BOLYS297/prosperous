@@ -118,6 +118,10 @@
                         <label class="block text-xs font-medium text-slate-500 mb-1">Prix Unitaire</label>
                         <input type="number" step="0.01" :name="`lignes[${index}][prix_unitaire]`" x-model="ligne.prix_unitaire" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
                     </div>
+                    <div class="w-32">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Prix de Vente</label>
+                        <input type="number" step="0.01" :name="`lignes[${index}][prix_vente]`" x-model="ligne.prix_vente" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    </div>
                     <div class="w-24">
                         <label class="block text-xs font-medium text-slate-500 mb-1">Qté</label>
                         <input type="number" min="1" :name="`lignes[${index}][quantite]`" x-model="ligne.quantite" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
@@ -172,7 +176,7 @@
                 }
             },
             addLine() {
-                this.lignes.push({ produit_id: '', prix_unitaire: 0, quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' });
+                this.lignes.push({ produit_id: '', prix_unitaire: 0, prix_vente: 0, quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' });
             },
             removeLine(index) {
                 if(this.lignes.length > 1) {
@@ -184,6 +188,7 @@
                 const produit = this.produits.find(p => p.id === produitId);
                 if(produit) {
                     this.lignes[index].prix_unitaire = produit.prix_achat;
+                    this.lignes[index].prix_vente = produit.prix_vente ?? produit.prix_achat;
                 }
             },
             searchProduits(query, index) {
@@ -204,7 +209,8 @@
                     id: p.id,
                     nom: p.nom,
                     reference: p.reference,
-                    prix_achat: p.prix_achat
+                    prix_achat: p.prix_achat,
+                    prix_vente: p.prix_vente
                 })).slice(0, 20);
 
                 ligne.showSuggestions = ligne.suggestions.length > 0;
@@ -236,6 +242,7 @@
                 }
                 ligne.produit_id = item.id;
                 ligne.prix_unitaire = item.prix_achat;
+                ligne.prix_vente = item.prix_vente ?? item.prix_achat;
                 ligne.showSuggestions = false;
                 ligne.suggestions = [];
                 ligne.searchValue = '';

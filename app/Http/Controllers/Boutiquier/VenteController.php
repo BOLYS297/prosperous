@@ -59,15 +59,6 @@ class VenteController extends Controller
                     throw new \Exception('Quantité invalide pour le produit ' . $produit->nom);
                 }
 
-                $stock = \App\Models\Stock::where('boutique_id', $boutiqueId)
-                    ->where('produit_id', $produit->id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$stock || $stock->quantite < $quantite) {
-                    throw new \Exception('Stock insuffisant pour le produit ' . $produit->nom . '.');
-                }
-
                 $unitPrice = $produit->prix_vente;
                 if ($isGrossiste) {
                     $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
@@ -81,18 +72,43 @@ class VenteController extends Controller
                     $unitPrice = $prixGrossiste->prix_vente;
                 }
 
-                $lineTotal = $unitPrice * $quantite;
-                $total += $lineTotal;
+                $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $produit->id, $quantite, $isGrossiste ? null : $unitPrice);
 
-                \App\Models\VenteLigne::create([
-                    'vente_id' => $vente->id,
-                    'produit_id' => $produit->id,
-                    'quantite' => $quantite,
-                    'prix_unitaire' => $unitPrice,
-                    'est_grossiste' => $isGrossiste,
-                ]);
+                if ($isGrossiste) {
+                    $lineTotal = $unitPrice * $quantite;
+                    $total += $lineTotal;
 
-                $stock->decrement('quantite', $quantite);
+                    \App\Models\VenteLigne::create([
+                        'vente_id' => $vente->id,
+                        'produit_id' => $produit->id,
+                        'quantite' => $quantite,
+                        'prix_unitaire' => $unitPrice,
+                        'est_grossiste' => true,
+                    ]);
+                } else {
+                    // Agréger les lots consommés pour créer une seule ligne par produit
+                    $prodQty = 0;
+                    $prodTotal = 0;
+                    foreach ($consumedStocks as $consumedStock) {
+                        $lotPrice = $consumedStock['prix_unitaire'] ?? $produit->prix_vente;
+                        $lotQty = $consumedStock['quantite'];
+                        $prodQty += $lotQty;
+                        $prodTotal += $lotPrice * $lotQty;
+                    }
+
+                    if ($prodQty > 0) {
+                        $avgUnitPrice = $prodTotal / $prodQty;
+                        $total += $prodTotal;
+
+                        \App\Models\VenteLigne::create([
+                            'vente_id' => $vente->id,
+                            'produit_id' => $produit->id,
+                            'quantite' => $prodQty,
+                            'prix_unitaire' => $avgUnitPrice,
+                            'est_grossiste' => false,
+                        ]);
+                    }
+                }
             }
 
             $vente->update(['montant_total' => $total]);
@@ -168,78 +184,99 @@ class VenteController extends Controller
         }
 
         $request->validate([
-            'produit_id' => 'required|exists:produits,id',
-            'quantite' => 'required|integer|min:1',
-            'is_grossiste' => 'nullable|boolean',
+            'lignes' => 'required|array|min:1',
+            'lignes.*.produit_id' => 'required|exists:produits,id',
+            'lignes.*.quantite' => 'required|integer|min:1',
+            'is_grossiste' => 'sometimes|in:0,1',
             'grossiste_id' => 'nullable|exists:grossistes,id',
         ]);
 
-        $produit = \App\Models\Produit::findOrFail($request->produit_id);
-        $isGrossiste = $request->boolean('is_grossiste');
+        $isGrossiste = $request->input('is_grossiste') === '1';
         $grossisteId = $isGrossiste ? $request->grossiste_id : null;
 
-        // Récupérer l'ancienne ligne de vente
-        $venteLigne = $vente->lignes()->first();
-        if (!$venteLigne) {
-            return back()->with('error', 'Ligne de vente introuvable.');
+        if ($isGrossiste && !$grossisteId) {
+            return back()->with('error', 'Veuillez sélectionner un grossiste.');
         }
 
-        // Vérifier le stock
-        $oldQuantite = $venteLigne->quantite;
-        $newQuantite = $request->quantite;
-        $quantiteDiff = $newQuantite - $oldQuantite;
+        $newLines = $request->input('lignes', []);
 
-        $stock = \App\Models\Stock::where('boutique_id', $boutiqueId)
-            ->where('produit_id', $request->produit_id)
-            ->first();
-
-        if (!$stock || $stock->quantite < $quantiteDiff) {
-            return back()->with('error', 'Stock insuffisant pour cette modification.');
-        }
-
-        $unitPrice = $produit->prix_vente;
-
-        if ($isGrossiste) {
-            if (!$grossisteId) {
-                return back()->with('error', 'Veuillez sélectionner un grossiste.');
+        $newLineMap = [];
+        foreach ($newLines as $lineData) {
+            $produit = \App\Models\Produit::find($lineData['produit_id']);
+            if (!$produit) {
+                return back()->with('error', 'Produit introuvable.');
             }
 
-            $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
-                ->where('produit_id', $produit->id)
-                ->first();
+            $unitPrice = $produit->prix_vente;
+            if ($isGrossiste) {
+                $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
+                    ->where('produit_id', $produit->id)
+                    ->first();
 
-            if (!$prixGrossiste) {
-                return back()->with('error', 'Aucun tarif grossiste défini.');
+                if (!$prixGrossiste) {
+                    return back()->with('error', 'Aucun tarif grossiste défini pour le produit ' . $produit->nom . '.');
+                }
+
+                $unitPrice = $prixGrossiste->prix_vente;
             }
 
-            $unitPrice = $prixGrossiste->prix_vente;
+            $newLineMap[] = [
+                'produit_id' => $produit->id,
+                'quantite' => (int) $lineData['quantite'],
+                'prix_unitaire' => $unitPrice,
+                'est_grossiste' => $isGrossiste,
+            ];
         }
 
-        $total = $unitPrice * $newQuantite;
+        $oldTotal = $vente->montant_total;
 
-        DB::transaction(function () use ($vente, $venteLigne, $stock, $quantiteDiff, $total, $unitPrice, $newQuantite, $produit, $grossisteId, $isGrossiste, $boutiqueId) {
-            // Mettre à jour la vente
+        DB::transaction(function () use ($vente, $boutiqueId, $newLineMap, $oldTotal, $grossisteId, $isGrossiste) {
+            foreach ($vente->lignes as $existingLine) {
+                \App\Models\Stock::restoreQuantity($boutiqueId, $existingLine->produit_id, $existingLine->quantite);
+            }
+
+            $vente->lignes()->delete();
+
+            $newTotal = 0;
+            foreach ($newLineMap as $lineData) {
+                $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $lineData['produit_id'], $lineData['quantite'], $lineData['est_grossiste'] ? null : $lineData['prix_unitaire']);
+
+                if ($lineData['est_grossiste']) {
+                    \App\Models\VenteLigne::create([
+                        'vente_id' => $vente->id,
+                        'produit_id' => $lineData['produit_id'],
+                        'quantite' => $lineData['quantite'],
+                        'prix_unitaire' => $lineData['prix_unitaire'],
+                        'est_grossiste' => true,
+                    ]);
+
+                    $newTotal += $lineData['prix_unitaire'] * $lineData['quantite'];
+                } else {
+                    foreach ($consumedStocks as $consumedStock) {
+                        $lotQty = $consumedStock['quantite'];
+                        $lotPrice = $consumedStock['prix_unitaire'] ?? $lineData['prix_unitaire'];
+
+                        \App\Models\VenteLigne::create([
+                            'vente_id' => $vente->id,
+                            'produit_id' => $lineData['produit_id'],
+                            'quantite' => $lotQty,
+                            'prix_unitaire' => $lotPrice,
+                            'est_grossiste' => false,
+                        ]);
+
+                        $newTotal += $lotPrice * $lotQty;
+                    }
+                }
+            }
+
             $vente->update([
-                'montant_total' => $total,
+                'montant_total' => $newTotal,
                 'grossiste_id' => $grossisteId,
             ]);
 
-            // Mettre à jour la ligne
-            $venteLigne->update([
-                'produit_id' => $produit->id,
-                'quantite' => $newQuantite,
-                'prix_unitaire' => $unitPrice,
-                'est_grossiste' => $isGrossiste,
-            ]);
-
-            // Ajuster le stock
-            $stock->decrement('quantite', $quantiteDiff);
-
-            // Mettre à jour le solde de la boutique
             $boutique = \App\Models\Boutique::find($boutiqueId);
             if ($boutique) {
-                $ancienTotal = $vente->getOriginal('montant_total');
-                $boutique->increment('solde', $total - $ancienTotal);
+                $boutique->increment('solde', $newTotal - $oldTotal);
             }
         });
 
@@ -262,13 +299,7 @@ class VenteController extends Controller
         DB::transaction(function () use ($vente, $boutiqueId) {
             // Restaurer le stock
             foreach ($vente->lignes as $ligne) {
-                $stock = \App\Models\Stock::where('boutique_id', $boutiqueId)
-                    ->where('produit_id', $ligne->produit_id)
-                    ->first();
-
-                if ($stock) {
-                    $stock->increment('quantite', $ligne->quantite);
-                }
+                \App\Models\Stock::restoreQuantity($boutiqueId, $ligne->produit_id, $ligne->quantite);
             }
 
             // Mettre à jour le solde de la boutique

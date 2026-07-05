@@ -89,7 +89,7 @@
     @endif
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="glass-panel p-6 rounded-2xl flex items-center hover:bg-white/80 transition-colors">
+        {{-- <div class="glass-panel p-6 rounded-2xl flex items-center hover:bg-white/80 transition-colors">
             <div class="p-4 bg-blue-100 text-blue-600 rounded-xl mr-4 shadow-sm border border-blue-200">
                 <i class="ri-shopping-bag-line text-3xl"></i>
             </div>
@@ -97,9 +97,9 @@
                 <div class="text-sm font-medium text-slate-500 mb-1">Ventes Aujourd'hui</div>
                 <div class="text-3xl font-black text-slate-800">{{ $nbVentesJour }}</div>
             </div>
-        </div>
+        </div> --}}
 
-        <div class="glass-panel p-6 rounded-2xl flex items-center hover:bg-white/80 transition-colors">
+        {{-- <div class="glass-panel p-6 rounded-2xl flex items-center hover:bg-white/80 transition-colors">
             <div class="p-4 bg-emerald-100 text-emerald-600 rounded-xl mr-4 shadow-sm border border-emerald-200">
                 <i class="ri-money-dollar-circle-line text-2xl"></i>
             </div>
@@ -107,7 +107,7 @@
                 <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Recettes du Jour</div>
                 <div class="text-2xl font-black text-slate-800">{{ number_format($ventesAujourdhui, 0, ',', ' ') }} <span class="text-sm font-medium text-slate-500">FCFA</span></div>
             </div>
-        </div>
+        </div> --}}
 
         <div class="glass-panel p-6 rounded-2xl flex items-center hover:bg-white/80 transition-colors">
             <div class="p-4 bg-rose-100 text-rose-600 rounded-xl mr-4 shadow-sm border border-rose-200">
@@ -252,6 +252,16 @@
                         @endif
                         <p class="text-blue-600 font-black text-xl mt-2"> <span class="product-price-label">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> FCFA</p>
                         <p class="text-xs text-slate-500 mt-1">{{ $enStock ? 'En stock' : 'Rupture de stock' }}{{ $enStock ? ' • Qté: ' . $stock->quantite : '' }}</p>
+                        @if(($produit->otherBoutiqueStocks ?? collect())->isNotEmpty())
+                            <div class="mt-3 rounded-xl display-block border border-amber-200 bg-amber-50 p-3 max-h-40 overflow-y-auto">
+                                <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Autres boutiques</p>
+                                @foreach($produit->otherBoutiqueStocks as $otherStock)
+                                    <p class="mt-1 text-xs text-slate-600">
+                                        {{ $otherStock->boutique?->nom ?? 'Autre boutique' }} : <span class="font-semibold text-slate-800">{{ $otherStock->quantite }}</span>
+                                    </p>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
 
                     <div class="mb-4 p-4 rounded-2xl border border-slate-200 bg-slate-50">

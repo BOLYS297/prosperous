@@ -92,7 +92,7 @@
                             <input type="hidden" name="prix_grossiste[{{ $loop->index }}][grossiste_id]" value="{{ $grossiste->id }}">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-2">Prix d'achat</label>
-                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_achat]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_achat', $prixProfil?->prix_achat ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="FCFA">
+                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_achat]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_achat', $prixProfil?->prix_achat ?? $produit->prix_achat ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="FCFA">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente grossiste</label>

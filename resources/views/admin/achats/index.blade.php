@@ -84,9 +84,21 @@
                             @endif
                         </td>
                         <td class="p-4 text-right">
-                            <a href="{{ route('admin.achats.show', $achat) }}" class="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors inline-block" title="Voir les détails">
-                                <i class="ri-eye-line"></i>
-                            </a>
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{{ route('admin.achats.show', $achat) }}" class="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors inline-block" title="Voir les détails">
+                                    <i class="ri-eye-line"></i>
+                                </a>
+                                <a href="{{ route('admin.achats.edit', $achat) }}" class="p-2 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg transition-colors inline-block" title="Modifier l'achat">
+                                    <i class="ri-edit-line"></i>
+                                </a>
+                                <form action="{{ route('admin.achats.destroy', $achat) }}" method="POST" class="inline" onsubmit="return confirm('Supprimer cet achat ?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="p-2 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg transition-colors" title="Supprimer l'achat">
+                                        <i class="ri-delete-bin-line"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

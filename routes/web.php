@@ -112,8 +112,8 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::post('/ventes', [\App\Http\Controllers\Boutiquier\VenteController::class, 'store'])->name('ventes.store');
         Route::get('/historique', [\App\Http\Controllers\Boutiquier\VenteController::class, 'historique'])->name('ventes.historique');
         Route::get('/ventes/{vente}', [\App\Http\Controllers\Boutiquier\VenteController::class, 'show'])->name('ventes.show');
-        // Route::get('/ventes/{vente}/edit', [\App\Http\Controllers\Boutiquier\VenteController::class, 'edit'])->name('ventes.edit'); // Modification désactivée
-        // Route::put('/ventes/{vente}', [\App\Http\Controllers\Boutiquier\VenteController::class, 'update'])->name('ventes.update'); // Modification désactivée
+        Route::get('/ventes/{vente}/edit', [\App\Http\Controllers\Boutiquier\VenteController::class, 'edit'])->name('ventes.edit');
+        Route::put('/ventes/{vente}', [\App\Http\Controllers\Boutiquier\VenteController::class, 'update'])->name('ventes.update');
         Route::delete('/ventes/{vente}', [\App\Http\Controllers\Boutiquier\VenteController::class, 'destroy'])->name('ventes.destroy');
 
         Route::get('/transferts', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'index'])->name('transferts.index');

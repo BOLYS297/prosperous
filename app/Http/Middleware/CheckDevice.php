@@ -18,16 +18,28 @@ class CheckDevice
     {
         $user = Auth::user();
 
-        // Le super_admin peut se connecter de n'importe où
+        // Le super_admin peut se connecter de n'importe où.
+        if (app()->environment(['local', 'testing'])) {
+            return $next($request);
+        }
+
         if ($user && $user->role !== 'super_admin') {
             $cookieToken = $request->cookie('device_token');
 
             if (!$user->device_token) {
+                if ($request->expectsJson()) {
+                    abort(403, 'Cet utilisateur n\'a aucun appareil autorisé.');
+                }
+
                 Auth::logout();
                 return redirect()->route('login')->withErrors(['email' => 'Cet utilisateur n\'a aucun appareil autorisé. Contactez l\'administrateur.']);
             }
 
             if (!$cookieToken || $cookieToken !== $user->device_token) {
+                if ($request->expectsJson()) {
+                    abort(403, 'Appareil non reconnu.');
+                }
+
                 Auth::logout();
                 return redirect()->route('login')->withErrors(['email' => 'Appareil non reconnu. Veuillez vous connecter sur l\'appareil autorisé de votre boutique.']);
             }

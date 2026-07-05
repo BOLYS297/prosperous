@@ -9,7 +9,7 @@
     <p class="text-black">{{ now()->translatedFormat('l d F Y') }}</p>
 </div>
 
-<!-- Total du jour -->
+{{-- <!-- Total du jour -->
 <div class="glass-panel p-6 rounded-2xl mb-6 flex items-center justify-between">
     <div class="flex items-center">
         <div class="p-4 bg-emerald-100 text-emerald-600 rounded-xl mr-4 shadow-sm border border-emerald-200">
@@ -23,7 +23,7 @@
     <div class="text-5xl font-black text-emerald-200">
         <i class="ri-line-chart-line"></i>
     </div>
-</div>
+</div> --}}
 
 <div class="glass-panel rounded-2xl overflow-hidden">
     <div class="p-6 bg-white/50 border-b border-slate-200/50">

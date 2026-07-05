@@ -1,0 +1,22 @@
+services:
+  app:
+    extends:
+      file: docker-compose.local.yml
+      service: app
+    ports:
+      - "8000:80"
+
+  queue:
+    extends:
+      file: docker-compose.local.yml
+      service: queue
+
+  scheduler:
+    extends:
+      file: docker-compose.local.yml
+      service: scheduler
+
+  db:
+    extends:
+      file: docker-compose.local.yml
+      service: db

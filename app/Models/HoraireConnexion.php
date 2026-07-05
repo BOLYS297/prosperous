@@ -31,6 +31,10 @@ class HoraireConnexion extends Model
             return true;
         }
 
+        if (app()->environment(['local', 'testing'])) {
+            return true;
+        }
+
         $currentDay = now()->dayOfWeek - 1; // dayOfWeek retourne 1=dimanche, on veut 0=lundi
         $currentDay = $currentDay < 0 ? 6 : $currentDay;
         $currentTime = now()->format('H:i:s');

@@ -8,9 +8,21 @@
         </a>
         <h2 class="text-3xl font-bold text-primary tracking-tight">Détails de l'Achat #{{ str_pad($achat->id, 4, '0', STR_PAD_LEFT) }}</h2>
     </div>
-    <button onclick="window.print()" class="px-4 py-2 bg-white/20 text-emerald-600 rounded-lg hover:bg-white/30 transition-colors flex items-center backdrop-blur-md">
-        <i class="ri-printer-line mr-2"></i> Imprimer
-    </button>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('admin.achats.edit', $achat) }}" class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors flex items-center">
+            <i class="ri-edit-line mr-2"></i> Modifier
+        </a>
+        <form action="{{ route('admin.achats.destroy', $achat) }}" method="POST" onsubmit="return confirm('Supprimer cet achat ?');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="px-4 py-2 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition-colors flex items-center">
+                <i class="ri-delete-bin-line mr-2"></i> Supprimer
+            </button>
+        </form>
+        <button onclick="window.print()" class="px-4 py-2 bg-white/20 text-emerald-600 rounded-lg hover:bg-white/30 transition-colors flex items-center backdrop-blur-md">
+            <i class="ri-printer-line mr-2"></i> Imprimer
+        </button>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

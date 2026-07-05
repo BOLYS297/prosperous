@@ -22,6 +22,7 @@ class RapportController extends Controller
     {
         $mois = $request->input('mois', date('m'));
         $annee = $request->input('annee', date('Y'));
+        $boutiqueId = $request->input('boutique_id');
 
         $startDate = Carbon::createFromDate($annee, $mois, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($annee, $mois, 1)->endOfMonth();
@@ -50,6 +51,21 @@ class RapportController extends Controller
             ->withSum('stocks', 'quantite')
             ->get();
 
+        $ventesJournalieresParBoutique = Vente::select(
+            'boutique_id',
+            DB::raw('DATE(created_at) as jour'),
+            DB::raw('SUM(montant_total) as total_ventes')
+        )
+            ->when($boutiqueId, function ($query) use ($boutiqueId) {
+                $query->where('boutique_id', $boutiqueId);
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('boutique_id', DB::raw('DATE(created_at)'))
+            ->orderBy('jour')
+            ->orderBy('boutique_id')
+            ->get()
+            ->groupBy('jour');
+
         $stockData = Stock::select(
             'boutique_id',
             DB::raw('SUM(stocks.quantite) as total_quantite'),
@@ -67,6 +83,8 @@ class RapportController extends Controller
             $boutique->stock_total_capital = $stock ? (int)$stock->total_capital : 0;
             $boutique->stock_total_produits = $stock ? (int)$stock->total_produits : 0;
         });
+
+        $boutiques = Boutique::orderBy('nom')->get();
 
         // Statistiques mensuelles pour le graphique (6 derniers mois)
         $statsMensuelles = [];
@@ -108,11 +126,14 @@ class RapportController extends Controller
             'totalAchats',
             'cashFlow',
             'ventesParBoutique',
+            'ventesJournalieresParBoutique',
             'statsMensuelles',
             'pendingDepenses',
             'pendingPertes',
             'mois',
-            'annee'
+            'annee',
+            'boutiques',
+            'boutiqueId'
         ));
     }
 

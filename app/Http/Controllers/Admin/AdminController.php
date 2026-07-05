@@ -7,6 +7,7 @@ use App\Models\Achat;
 use App\Models\Boutique;
 use App\Models\DeductionSetting;
 use App\Models\Deduction;
+use App\Models\Depense;
 use App\Models\LogActivite;
 use App\Notifications\SalaryDeductionNotification;
 use App\Models\Recharge;
@@ -58,6 +59,11 @@ class AdminController extends Controller
         $maxWeeklySales = $weeklySales->max('total') ?: 1;
 
         $recentActivities = LogActivite::latest()->take(5)->get();
+
+        $totalVentes = Vente::sum('montant_total');
+        $totalDepenses = Depense::where('statut', 'approved')->sum('montant');
+        $totalAchats = Achat::sum('montant_total');
+        $profitNet = $totalVentes - ($totalDepenses + $totalAchats);
 
         $rechargesEnAttente = Recharge::where('statut', 'confirmee_par_magasinier')->count();
         $rechargesAnomalies = Recharge::where('statut', 'anomalie')->count();
@@ -119,7 +125,8 @@ class AdminController extends Controller
             'pendingDeductions',
             'approvedDeductions',
             'topProducts',
-            'deductionSearch'
+            'deductionSearch',
+            'profitNet'
         ));
     }
 

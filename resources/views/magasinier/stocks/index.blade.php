@@ -33,8 +33,8 @@
             <tbody class="text-sm">
                 @forelse($produits as $produit)
                     @php
-                        $stock = $produit->stocks->first();
-                        $quantite = $stock ? $stock->quantite : 0;
+                        // Somme des quantités sur tous les lots pour la boutique courante
+                        $quantite = $produit->stocks->sum('quantite');
                     @endphp
                     <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
                         <td class="p-4">

@@ -17,4 +17,34 @@ class Produit extends Model
     {
         return $this->hasMany(PrixGrossiste::class);
     }
+
+    public function getPrixAchatAttribute($value)
+    {
+        $activeStock = $this->stocks()
+            ->where('quantite', '>', 0)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first();
+
+        if ($activeStock && $activeStock->prix_achat_unitaire !== null) {
+            return (float) $activeStock->prix_achat_unitaire;
+        }
+
+        return $value;
+    }
+
+    public function getPrixVenteAttribute($value)
+    {
+        $activeStock = $this->stocks()
+            ->where('quantite', '>', 0)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first();
+
+        if ($activeStock && $activeStock->prix_vente_unitaire !== null) {
+            return (float) $activeStock->prix_vente_unitaire;
+        }
+
+        return $value;
+    }
 }

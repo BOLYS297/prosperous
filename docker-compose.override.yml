@@ -1,0 +1,62 @@
+services:
+  app:
+    ports:
+      - "8000:80"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-prosperious}
+      DB_USERNAME: ${DB_USERNAME:-prosperous}
+      DB_PASSWORD: ${DB_PASSWORD:-prosperous}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+  queue:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-prosperious}
+      DB_USERNAME: ${DB_USERNAME:-prosperous}
+      DB_PASSWORD: ${DB_PASSWORD:-prosperous}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+  scheduler:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-prosperious}
+      DB_USERNAME: ${DB_USERNAME:-prosperous}
+      DB_PASSWORD: ${DB_PASSWORD:-prosperous}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+  db:
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-prosperious}
+      MYSQL_USER: ${DB_USERNAME:-prosperous}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-prosperous}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+
+  caddy:
+    profiles: ["prod"]

@@ -7,6 +7,7 @@ use App\Notifications\AchatDepenseNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class AchatController extends Controller
@@ -70,6 +71,7 @@ class AchatController extends Controller
             'lignes.*.produit_id' => 'required|exists:produits,id',
             'lignes.*.quantite' => 'required|integer|min:1',
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
+            'lignes.*.prix_vente' => 'nullable|numeric|min:0',
         ];
 
         // Make debit_boutique_id required only when statut === 'paye'.
@@ -105,16 +107,38 @@ class AchatController extends Controller
                     'produit_id' => $ligne['produit_id'],
                     'quantite' => $ligne['quantite'],
                     'prix_unitaire' => $ligne['prix_unitaire'],
+                    'prix_vente' => isset($ligne['prix_vente']) && $ligne['prix_vente'] !== '' ? $ligne['prix_vente'] : null,
                 ]);
+
+                // Mettre à jour les prix du produit (prix d'achat et prix de vente) en base
+                try {
+                    $produit = \App\Models\Produit::find($ligne['produit_id']);
+                    if ($produit) {
+                        $produit->prix_achat = $ligne['prix_unitaire'];
+                        if (isset($ligne['prix_vente']) && $ligne['prix_vente'] !== null && $ligne['prix_vente'] !== '') {
+                            $produit->prix_vente = $ligne['prix_vente'];
+                        }
+                        $produit->save();
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Impossible de mettre à jour les prix du produit pour l\'achat: ' . $e->getMessage());
+                }
 
                 // If destination is not a magasin, increment stock immediately.
                 if (! $destination || $destination->type !== 'magasin') {
-                    $stock = \App\Models\Stock::firstOrCreate(
-                        ['boutique_id' => $request->boutique_id, 'produit_id' => $ligne['produit_id']],
-                        ['quantite' => 0]
-                    );
+                    $batchPrixVente = isset($ligne['prix_vente']) && $ligne['prix_vente'] !== null && $ligne['prix_vente'] !== ''
+                        ? $ligne['prix_vente']
+                        : $ligne['prix_unitaire'];
 
-                    $stock->increment('quantite', $ligne['quantite']);
+                    \App\Models\Stock::addBatch(
+                        $request->boutique_id,
+                        $ligne['produit_id'],
+                        $ligne['quantite'],
+                        $ligne['prix_unitaire'],
+                        $batchPrixVente,
+                        'achat',
+                        $achat->id
+                    );
                 }
             }
 
@@ -194,7 +218,7 @@ class AchatController extends Controller
                     }
                 } catch (\Throwable $e) {
                     // Ne pas faire échouer la transaction si la notification pose problème; loggons l'erreur.
-                    \Log::error('Erreur en notifiant les magasiniers pour la recharge: ' . $e->getMessage());
+                    Log::error('Erreur en notifiant les magasiniers pour la recharge: ' . $e->getMessage());
                 }
             }
         });
@@ -231,5 +255,129 @@ class AchatController extends Controller
     {
         $achat->load(['fournisseur', 'boutique', 'lignes.produit', 'recharge.lignes']);
         return view('admin.achats.show', compact('achat'));
+    }
+
+    public function edit(\App\Models\Achat $achat)
+    {
+        $achat->load(['fournisseur', 'boutique', 'lignes.produit']);
+        $fournisseurs = \App\Models\Fournisseur::all();
+        $produits = \App\Models\Produit::all();
+        $magasins = \App\Models\Boutique::where('type', 'magasin')->get();
+        $allBoutiques = \App\Models\Boutique::orderBy('nom')->get();
+
+        return view('admin.achats.edit', compact('achat', 'fournisseurs', 'produits', 'magasins', 'allBoutiques'));
+    }
+
+    public function update(Request $request, \App\Models\Achat $achat)
+    {
+        $rules = [
+            'fournisseur_id' => 'required|exists:fournisseurs,id',
+            'boutique_id' => [
+                'required',
+                'exists:boutiques,id',
+                function ($attribute, $value, $fail) {
+                    $boutique = \App\Models\Boutique::find($value);
+                    if (! $boutique || $boutique->type !== 'magasin') {
+                        $fail('La destination doit être un magasin.');
+                    }
+                },
+            ],
+            'statut' => 'required|in:paye,dette',
+            'lignes' => 'required|array|min:1',
+            'lignes.*.produit_id' => 'required|exists:produits,id',
+            'lignes.*.quantite' => 'required|integer|min:1',
+            'lignes.*.prix_unitaire' => 'required|numeric|min:0',
+            'lignes.*.prix_vente' => 'nullable|numeric|min:0',
+        ];
+
+        if ($request->input('statut') === 'paye') {
+            $rules['debit_boutique_id'] = 'required|exists:boutiques,id';
+        } else {
+            $rules['debit_boutique_id'] = 'nullable';
+        }
+
+        $request->validate($rules);
+
+        DB::transaction(function () use ($request, $achat) {
+            $montant_total = 0;
+            foreach ($request->lignes as $ligne) {
+                $montant_total += $ligne['quantite'] * $ligne['prix_unitaire'];
+            }
+
+            $achat->update([
+                'fournisseur_id' => $request->fournisseur_id,
+                'boutique_id' => $request->boutique_id,
+                'debit_boutique_id' => $request->input('statut') === 'paye' ? $request->debit_boutique_id : null,
+                'statut' => $request->statut,
+                'montant_total' => $montant_total,
+            ]);
+
+            $achat->lignes()->delete();
+
+            foreach ($request->lignes as $ligne) {
+                \App\Models\AchatLigne::create([
+                    'achat_id' => $achat->id,
+                    'produit_id' => $ligne['produit_id'],
+                    'quantite' => $ligne['quantite'],
+                    'prix_unitaire' => $ligne['prix_unitaire'],
+                    'prix_vente' => isset($ligne['prix_vente']) && $ligne['prix_vente'] !== '' ? $ligne['prix_vente'] : null,
+                ]);
+
+                try {
+                    $produit = \App\Models\Produit::find($ligne['produit_id']);
+                    if ($produit) {
+                        $produit->prix_achat = $ligne['prix_unitaire'];
+                        if (isset($ligne['prix_vente']) && $ligne['prix_vente'] !== null && $ligne['prix_vente'] !== '') {
+                            $produit->prix_vente = $ligne['prix_vente'];
+                        }
+                        $produit->save();
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Impossible de mettre à jour les prix du produit lors de la modification de l\'achat: ' . $e->getMessage());
+                }
+            }
+
+            if ($achat->recharge) {
+                $achat->recharge()->delete();
+            }
+
+            $destination = \App\Models\Boutique::find($request->boutique_id);
+            if ($destination && $destination->type === 'magasin') {
+                $recharge = \App\Models\Recharge::create([
+                    'source_id' => null,
+                    'destination_id' => $request->boutique_id,
+                    'user_id' => Auth::id(),
+                    'montant' => $montant_total,
+                    'statut' => 'en_attente',
+                    'fournisseur_id' => $request->fournisseur_id,
+                    'achat_id' => $achat->id,
+                ]);
+
+                foreach ($request->lignes as $ligne) {
+                    \App\Models\RechargeLigne::create([
+                        'recharge_id' => $recharge->id,
+                        'produit_id' => $ligne['produit_id'],
+                        'quantite_envoyee' => $ligne['quantite'],
+                        'quantite_recue' => 0,
+                        'quantite_manquante' => $ligne['quantite'],
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('admin.achats.index')->with('success', 'Achat modifié avec succès.');
+    }
+
+    public function destroy(\App\Models\Achat $achat)
+    {
+        DB::transaction(function () use ($achat) {
+            $achat->lignes()->delete();
+            if ($achat->recharge) {
+                $achat->recharge()->delete();
+            }
+            $achat->delete();
+        });
+
+        return redirect()->route('admin.achats.index')->with('success', 'Achat supprimé avec succès.');
     }
 }

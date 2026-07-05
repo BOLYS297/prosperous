@@ -39,25 +39,18 @@ class TransfertController extends Controller
             return back()->with('error', 'Cette demande a déjà été traitée.');
         }
 
-        // Check stock in Magasin
-        $stockMagasin = Stock::where('boutique_id', $magasinId)
-            ->where('produit_id', $demande->produit_id)
-            ->first();
+        try {
+            DB::transaction(function () use ($demande, $request, $magasinId) {
+                \App\Models\Stock::consumeForSale($magasinId, $demande->produit_id, $request->quantite_expediee, null);
 
-        if (!$stockMagasin || $stockMagasin->quantite < $request->quantite_expediee) {
+                $demande->update([
+                    'quantite_expediee' => $request->quantite_expediee,
+                    'statut' => 'expediee',
+                ]);
+            });
+        } catch (\RuntimeException $e) {
             return back()->with('error', 'Stock insuffisant dans le magasin pour expédier cette quantité.');
         }
-
-        DB::transaction(function () use ($demande, $request, $stockMagasin) {
-            // Déduire du magasin
-            $stockMagasin->decrement('quantite', $request->quantite_expediee);
-
-            // Mettre à jour la demande
-            $demande->update([
-                'quantite_expediee' => $request->quantite_expediee,
-                'statut' => 'expediee',
-            ]);
-        });
 
         $demande->load(['produit', 'boutique']);
 

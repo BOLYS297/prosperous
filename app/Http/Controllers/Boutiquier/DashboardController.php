@@ -19,7 +19,6 @@ class DashboardController extends Controller
         if (!$boutique) {
             $produits = collect();
         } else {
-            // Produits avec leur stock local (sans révéler la quantité exacte)
             $produits = \App\Models\Produit::when($q, function ($query) use ($q) {
                 $query->where('nom', 'like', "%{$q}%")
                     ->orWhere('reference', 'like', "%{$q}%");
@@ -29,6 +28,21 @@ class DashboardController extends Controller
                 }])
                 ->orderBy('nom')
                 ->get();
+
+            $visibleBoutiques = \App\Models\Boutique::where('id', '!=', $boutiqueId)
+                ->orderBy('nom')
+                ->get();
+
+            $stockByBoutique = \App\Models\Stock::whereIn('boutique_id', $visibleBoutiques->pluck('id'))
+                ->with('boutique')
+                ->get()
+                ->groupBy('produit_id');
+
+            $produits->each(function ($produit) use ($stockByBoutique) {
+                $produit->otherBoutiqueStocks = $stockByBoutique->get($produit->id, collect())
+                    ->sortBy(fn($stock) => $stock->boutique?->nom ?? '')
+                    ->values();
+            });
         }
 
         $grossistes = \App\Models\Grossiste::with('prixProduits')->get();

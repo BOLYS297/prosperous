@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,7 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE `recharges` MODIFY `statut` ENUM('en_attente','confirmee','confirmee_par_magasinier','anomalie','approuvee','rejetee') NOT NULL DEFAULT 'en_attente';");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE `recharges` MODIFY `statut` ENUM('en_attente','confirmee','confirmee_par_magasinier','anomalie','approuvee','rejetee') NOT NULL DEFAULT 'en_attente';");
+        }
     }
 
     /**
@@ -18,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE `recharges` MODIFY `statut` ENUM('en_attente','confirmee','anomalie') NOT NULL DEFAULT 'en_attente';");
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE `recharges` MODIFY `statut` ENUM('en_attente','confirmee','anomalie') NOT NULL DEFAULT 'en_attente';");
+        }
     }
 };

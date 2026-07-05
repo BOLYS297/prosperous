@@ -28,7 +28,10 @@ class CheckHoraireConnexion
             // Pour les employés (magasinier, boutiquier), vérifier les tranches horaires
             if (in_array($user->role, ['magasinier', 'boutiquier'], true)) {
                 if (!HoraireConnexion::canUserConnect($user)) {
-                    // L'utilisateur ne peut pas accéder à cette heure
+                    if ($request->expectsJson()) {
+                        abort(403, 'Vous ne pouvez vous connecter que pendant les heures autorisées.');
+                    }
+
                     auth()->logout();
 
                     return redirect()->route('login')

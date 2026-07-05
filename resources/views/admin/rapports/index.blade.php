@@ -40,6 +40,16 @@
             </select>
         </div>
 
+        <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Boutique</label>
+            <select name="boutique_id" class="w-full px-4 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">Toutes les boutiques</option>
+                @foreach($boutiques as $boutique)
+                    <option value="{{ $boutique->id }}" {{ (string) $boutiqueId === (string) $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }}</option>
+                @endforeach
+            </select>
+        </div>
+
         <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center h-[42px]">
             <i class="ri-filter-3-line mr-2"></i> Mettre à jour
         </button>
@@ -217,6 +227,42 @@
                 @empty
                     <tr>
                         <td colspan="4" class="py-4 text-center text-slate-500">Aucune boutique ou stock disponible.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="glass-panel rounded-2xl p-6 mb-8">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h3 class="text-lg font-bold text-slate-800 flex items-center"><i class="ri-calendar-todo-line mr-2 text-amber-500"></i> Ventes journalières par boutique</h3>
+            <p class="text-sm text-slate-500">Synthèse quotidienne des ventes enregistrées pour chaque boutique sur la période sélectionnée.</p>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 text-slate-500">
+                    <th class="py-3 font-semibold">Jour</th>
+                    <th class="py-3 font-semibold">Boutique</th>
+                    <th class="py-3 font-semibold text-right">Montant total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($ventesJournalieresParBoutique as $jour => $ventesDuJour)
+                    @foreach($ventesDuJour as $venteJournaliere)
+                        <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                            <td class="py-3 font-medium text-slate-700">{{ \Carbon\Carbon::parse($jour)->translatedFormat('d/m/Y') }}</td>
+                            <td class="py-3 font-medium text-slate-700">{{ $venteJournaliere->boutique ? $venteJournaliere->boutique->nom : 'Boutique inconnue' }}</td>
+                            <td class="py-3 text-right font-bold text-slate-800">{{ number_format($venteJournaliere->total_ventes, 0, ',', ' ') }} FCFA</td>
+                        </tr>
+                    @endforeach
+                @empty
+                    <tr>
+                        <td colspan="3" class="py-4 text-center text-slate-500">Aucune vente enregistrée pour cette période.</td>
                     </tr>
                 @endforelse
             </tbody>

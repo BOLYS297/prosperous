@@ -15,7 +15,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (! Schema::hasTable('deductions')) {
+        if (! Schema::hasTable('deductions') || Schema::getConnection()->getDriverName() === 'sqlite') {
             return;
         }
 
@@ -27,13 +27,17 @@ return new class extends Migration
         ))->pluck('CONSTRAINT_NAME')->all();
 
         Schema::table('deductions', function (Blueprint $table) use ($existing) {
-            if (Schema::hasColumn('deductions', 'user_id')
-                && ! in_array('deductions_user_id_foreign', $existing, true)) {
+            if (
+                Schema::hasColumn('deductions', 'user_id')
+                && ! in_array('deductions_user_id_foreign', $existing, true)
+            ) {
                 $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             }
 
-            if (Schema::hasColumn('deductions', 'approved_by')
-                && ! in_array('deductions_approved_by_foreign', $existing, true)) {
+            if (
+                Schema::hasColumn('deductions', 'approved_by')
+                && ! in_array('deductions_approved_by_foreign', $existing, true)
+            ) {
                 $table->foreign('approved_by')->references('id')->on('users')->onDelete('set null');
             }
         });

@@ -10,6 +10,9 @@
         <p class="text-sm text-slate-500">{{ $vente->created_at->format('d/m/Y à H:i') }}</p>
     </div>
     <div class="flex gap-2">
+        <a href="{{ route('boutiquier.ventes.edit', $vente) }}" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors flex items-center">
+            <i class="ri-edit-line mr-2"></i> Modifier
+        </a>
         <button onclick="window.print()" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors flex items-center">
             <i class="ri-printer-line mr-2"></i> Imprimer
         </button>

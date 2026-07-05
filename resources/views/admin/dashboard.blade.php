@@ -304,7 +304,20 @@
         </div>
     </div>
 
-    <!-- Card 2: Boutique 1 -->
+    <!-- Card 2: Bénéfice Net -->
+    <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <i class="ri-pie-chart-2-fill text-6xl text-emerald-600"></i>
+        </div>
+        <h3 class="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider">Bénéfice Net</h3>
+        <p class="text-3xl font-bold text-slate-800">{{ $profitNet >= 0 ? '+' : '' }}{{ number_format($profitNet, 0, ',', ' ') }} <span class="text-xl text-slate-500 font-normal">FCFA</span></p>
+        <div class="mt-4 flex items-center text-sm {{ $profitNet >= 0 ? 'text-emerald-500' : 'text-rose-500' }} font-medium">
+            <i class="ri-arrow-{{ $profitNet >= 0 ? 'up' : 'down' }}-line mr-1"></i>
+            {{ $profitNet >= 0 ? 'Profit estimé' : 'Perte estimée' }}
+        </div>
+    </div>
+
+    <!-- Card 3: Boutique 1 -->
     <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
         <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <i class="ri-store-2-fill text-6xl text-indigo-600"></i>
