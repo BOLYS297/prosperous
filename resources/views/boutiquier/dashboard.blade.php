@@ -253,6 +253,22 @@
                         @endif
                         <p class="text-blue-600 font-black text-xl mt-2"> <span class="product-price-label">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> FCFA</p>
                         <p class="text-xs text-slate-500 mt-1">{{ $enStock ? 'En stock' : 'Rupture de stock' }}{{ $enStock ? ' • Qté: ' . $quantiteStock : '' }}</p>
+
+                        @php
+                            // Lots FIFO disponibles (le plus ancien = prix appliqué en priorité)
+                            $lotsFifo = $produit->stocks->where('quantite', '>', 0)->sortBy('created_at')->values();
+                        @endphp
+                        @if($lotsFifo->count() > 0)
+                            <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-2 max-h-28 overflow-y-auto">
+                                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Écoulement FIFO — prix par lot</p>
+                                @foreach($lotsFifo as $i => $lot)
+                                    <div class="flex items-center justify-between text-xs py-0.5 {{ $i === 0 ? 'font-bold text-blue-700' : 'text-slate-500' }}">
+                                        <span>{{ $i === 0 ? '➜ ' : '' }}{{ $lot->quantite }} u.</span>
+                                        <span>{{ number_format($lot->prix_vente_unitaire ?? $produit->prix_vente, 0, ',', ' ') }} FCFA</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                         @if(($produit->otherBoutiqueStocks ?? collect())->isNotEmpty())
                             <div class="mt-3 rounded-xl display-block border border-amber-200 bg-amber-50 p-3 max-h-40 overflow-y-auto">
                                 <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Autres boutiques</p>

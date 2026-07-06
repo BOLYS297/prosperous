@@ -17,7 +17,10 @@ class StockController extends Controller
                 ->orWhere('reference', 'like', "%{$q}%");
         })
             ->with(['stocks' => function ($query) use ($boutiqueId) {
-                $query->where('boutique_id', $boutiqueId);
+                // Ordre FIFO (plus ancien lot d'abord) pour l'affichage des lots
+                $query->where('boutique_id', $boutiqueId)
+                    ->orderBy('created_at')
+                    ->orderBy('id');
             }])
             ->orderBy('nom')
             ->get();
