@@ -28,6 +28,7 @@
                     <th class="p-4 font-semibold">Référence</th>
                     <th class="p-4 font-semibold text-center">Quantité en Stock</th>
                     <th class="p-4 font-semibold text-center">État</th>
+                    <th class="p-4 font-semibold">Lots (FIFO / prix de vente)</th>
                 </tr>
             </thead>
             <tbody class="text-sm">
@@ -68,10 +69,28 @@
                                 <span class="px-3 py-1 rounded-full text-sm font-bold bg-rose-100 text-rose-700">Rupture</span>
                             @endif
                         </td>
+                        <td class="p-4">
+                            @php
+                                // Lots disponibles, ordre FIFO (plus ancien = écoulé en premier)
+                                $lotsFifo = $produit->stocks->where('quantite', '>', 0)->sortBy('created_at')->values();
+                            @endphp
+                            @if($lotsFifo->isEmpty())
+                                <span class="text-slate-400 text-xs">—</span>
+                            @else
+                                <div class="max-h-24 overflow-y-auto space-y-1 pr-1 min-w-[10rem]">
+                                    @foreach($lotsFifo as $i => $lot)
+                                        <div class="flex items-center justify-between gap-3 text-xs {{ $i === 0 ? 'font-bold text-blue-700' : 'text-slate-500' }}">
+                                            <span>{{ $i === 0 ? '➜ ' : '' }}{{ $lot->quantite }} u.</span>
+                                            <span>{{ number_format($lot->prix_vente_unitaire ?? $produit->prix_vente, 0, ',', ' ') }} FCFA</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="p-12 text-center text-slate-500">
+                        <td colspan="6" class="p-12 text-center text-slate-500">
                             Aucun produit n'est enregistré dans la base de données de l'entreprise.
                         </td>
                     </tr>
