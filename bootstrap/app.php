@@ -23,4 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.horaire' => \App\Http\Middleware\CheckHoraireConnexion::class,
             'log.activity' => \App\Http\Middleware\LogUserActivity::class,
         ]);
+
+        // Derrière le reverse-proxy Caddy (HTTPS) : faire confiance au proxy pour
+        // que Laravel détecte correctement le schéma HTTPS (cookies de session
+        // sécurisés, génération d'URL, vraie IP client). Le conteneur app n'est
+        // joignable que par Caddy, donc "*" est sûr ici.
+        $middleware->trustProxies(at: '*');
     })->create();
