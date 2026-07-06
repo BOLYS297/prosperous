@@ -14,7 +14,7 @@
         <form action="{{ route('magasinier.stocks.index') }}" method="GET" class="w-full md:w-1/2">
             <label for="q" class="sr-only">Rechercher produit</label>
             <div class="relative">
-                <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" placeholder="Rechercher un produit dans le stock..." class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" autocomplete="off" data-instant-search="#stocks-tbody" data-instant-search-empty="#stocks-empty" placeholder="Rechercher un produit dans le stock..." class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                 <i class="ri-search-line absolute left-3 top-3 text-slate-400"></i>
             </div>
         </form>
@@ -31,13 +31,13 @@
                     <th class="p-4 font-semibold">Lots (FIFO / prix de vente)</th>
                 </tr>
             </thead>
-            <tbody class="text-sm">
+            <tbody id="stocks-tbody" class="text-sm">
                 @forelse($produits as $produit)
                     @php
                         // Somme des quantités sur tous les lots pour la boutique courante
                         $quantite = $produit->stocks->sum('quantite');
                     @endphp
-                    <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
+                    <tr data-search="{{ \Illuminate\Support\Str::lower($produit->nom . ' ' . $produit->reference) }}" class="border-b border-white/20 hover:bg-white/30 transition-colors">
                         <td class="p-4">
                             @if($produit->image)
                                 <img src="{{ asset('storage/' . $produit->image) }}" class="h-10 w-10 object-cover rounded-lg shadow-sm border border-white/50" alt="{{ $produit->nom }}">
@@ -95,6 +95,9 @@
                         </td>
                     </tr>
                 @endforelse
+                <tr id="stocks-empty" style="display:none">
+                    <td colspan="6" class="p-12 text-center text-slate-500">Aucun produit ne correspond à votre recherche.</td>
+                </tr>
             </tbody>
         </table>
     </div>

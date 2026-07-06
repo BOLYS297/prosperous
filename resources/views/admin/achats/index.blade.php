@@ -14,7 +14,7 @@
 <form action="{{ route('admin.achats.index') }}" method="GET" class="mb-6 grid gap-4 md:grid-cols-[1fr_auto] items-end">
     <div>
         <label for="q" class="sr-only">Recherche achats</label>
-        <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" placeholder="Rechercher achat, fournisseur, boutique ou statut..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" />
+        <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" autocomplete="off" data-instant-search="#achats-tbody" data-instant-search-empty="#achats-empty" placeholder="Rechercher achat, fournisseur, boutique ou statut..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" />
     </div>
     <div class="flex items-center gap-3">
         <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors">Chercher</button>
@@ -44,12 +44,12 @@
                     <th class="p-4 font-semibold text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="text-sm">
+            <tbody id="achats-tbody" class="text-sm">
                 @forelse($achats as $achat)
                     @php
                         $hasSupplierDebt = $achat->recharge && $achat->recharge->lignes->sum('quantite_manquante') > 0;
                     @endphp
-                    <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
+                    <tr data-search="{{ \Illuminate\Support\Str::lower('achat-' . str_pad($achat->id, 4, '0', STR_PAD_LEFT) . ' ' . ($achat->fournisseur->nom ?? '') . ' ' . ($achat->boutique->nom ?? '') . ' ' . ($achat->statut === 'paye' ? 'paye payé' : 'dette')) }}" class="border-b border-white/20 hover:bg-white/30 transition-colors">
                         <td class="p-4 font-medium text-slate-800">
                             #ACHAT-{{ str_pad($achat->id, 4, '0', STR_PAD_LEFT) }}
                             @if($hasSupplierDebt)
@@ -112,6 +112,9 @@
                         </td>
                     </tr>
                 @endforelse
+                <tr id="achats-empty" style="display:none">
+                    <td colspan="6" class="p-12 text-center text-slate-500">Aucun achat ne correspond à votre recherche.</td>
+                </tr>
             </tbody>
         </table>
     </div>

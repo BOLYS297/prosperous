@@ -23,7 +23,7 @@
         <form action="{{ route('admin.produits.index') }}" method="GET" class="flex-1 min-w-0">
             <label for="q" class="sr-only">Recherche produit</label>
             <div class="relative w-full">
-                <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-3 rounded-2xl bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" />
+                <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" autocomplete="off" data-instant-search="#produits-tbody" data-instant-search-empty="#produits-empty" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-3 rounded-2xl bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" />
                 <i class="ri-search-line absolute left-3 top-3 text-slate-400"></i>
             </div>
         </form>
@@ -44,9 +44,9 @@
                     <th class="p-4 font-semibold text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="text-sm">
+            <tbody id="produits-tbody" class="text-sm">
                 @forelse($produits as $produit)
-                    <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
+                    <tr data-search="{{ \Illuminate\Support\Str::lower($produit->nom . ' ' . $produit->reference) }}" class="border-b border-white/20 hover:bg-white/30 transition-colors">
                         <td class="p-4">
                             @if($produit->image)
                                 <img src="{{ asset('storage/' . $produit->image) }}" class="h-10 w-10 object-cover rounded-lg shadow-sm border border-white/50" alt="{{ $produit->nom }}">
@@ -121,6 +121,9 @@
                         </td>
                     </tr>
                 @endforelse
+                <tr id="produits-empty" style="display:none">
+                    <td colspan="7" class="p-12 text-center text-slate-500">Aucun produit ne correspond à votre recherche.</td>
+                </tr>
             </tbody>
         </table>
     </div>

@@ -93,7 +93,7 @@
             <form action="{{ route('admin.dashboard') }}" method="GET" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 <div class="relative flex-1 min-w-0">
                     <label for="deduction_search" class="sr-only">Rechercher déduction</label>
-                    <input id="deduction_search" name="deduction_search" type="text" value="{{ $deductionSearch }}" placeholder="Rechercher par employé, type ou montant..." class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                    <input id="deduction_search" name="deduction_search" type="text" value="{{ $deductionSearch }}" autocomplete="off" data-instant-search="#pending-deductions-body, #approved-deductions-body" placeholder="Rechercher par employé, type ou montant..." class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                     <i class="ri-search-line absolute left-3 top-3 text-slate-400"></i>
                 </div>
                 <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors">Filtrer</button>
@@ -117,9 +117,9 @@
                         <th class="p-4 text-center font-semibold">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="pending-deductions-body">
                     @foreach($pendingDeductions as $deduction)
-                        <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <tr data-search="{{ \Illuminate\Support\Str::lower(($deduction->user?->nom_utilisateur ?? '') . ' ' . ($deduction->user?->role ?? '') . ' ' . $deduction->event_type_label . ' ' . $deduction->amount) }}" class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                             <td class="p-4">
                                 <div class="font-bold text-slate-800">{{ $deduction->user?->nom_utilisateur ?? 'Utilisateur supprimé' }}</div>
                                 <div class="text-xs text-slate-500">{{ ucfirst($deduction->user?->role ?? 'inconnu') }}</div>
@@ -190,9 +190,9 @@
                     <th class="p-4 text-left font-semibold">Date approbation</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="approved-deductions-body">
                 @foreach($approvedDeductions as $deduction)
-                    <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <tr data-search="{{ \Illuminate\Support\Str::lower(($deduction->user?->nom_utilisateur ?? '') . ' ' . ($deduction->user?->role ?? '') . ' ' . $deduction->event_type_label . ' ' . $deduction->amount) }}" class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                         <td class="p-4">
                             <div class="font-bold text-slate-800">{{ $deduction->user->nom_utilisateur }}</div>
                             <div class="text-xs text-slate-500">{{ ucfirst($deduction->user->role) }}</div>
