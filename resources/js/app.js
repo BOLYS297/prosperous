@@ -1,5 +1,6 @@
 import "./bootstrap";
 import "./offline-sync";
+import "./instant-search";
 import { initProduitSearch } from "./produit-search";
 
 import Alpine from "alpinejs";
