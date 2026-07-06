@@ -5,8 +5,8 @@
     <a href="{{ route('boutiquier.dashboard') }}" class="text-blue-200 hover:text-white transition-colors flex items-center text-sm mb-4">
         <i class="ri-arrow-left-line mr-1"></i> Retour à la caisse
     </a>
-    <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Historique des Ventes du Jour</h2>
-    <p class="text-black">{{ now()->translatedFormat('l d F Y') }}</p>
+    <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Historique des Ventes de la Semaine</h2>
+    <p class="text-black">Du {{ $debutSemaine->translatedFormat('d F') }} au {{ $finSemaine->translatedFormat('d F Y') }} — Total : <span class="font-bold">{{ number_format($totalSemaine, 0, ',', ' ') }} FCFA</span></p>
 </div>
 
 {{-- <!-- Total du jour -->
@@ -33,7 +33,7 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-white/40 border-b border-white/50 text-sm text-slate-600">
-                    <th class="p-4 font-semibold">Heure</th>
+                    <th class="p-4 font-semibold">Date &amp; heure</th>
                     <th class="p-4 font-semibold">Produit(s)</th>
                     <th class="p-4 font-semibold text-center">Qté</th>
                     <th class="p-4 font-semibold text-right">Montant</th>
@@ -46,7 +46,7 @@
                     @foreach($vente->lignes as $ligne)
                     <tr class="border-b border-white/20 hover:bg-white/30 transition-colors">
                         <td class="p-4 text-slate-500">
-                            <i class="ri-time-line mr-1"></i>{{ $vente->created_at->format('H:i') }}
+                            <i class="ri-time-line mr-1"></i>{{ $vente->created_at->translatedFormat('D d/m') }} à {{ $vente->created_at->format('H:i') }}
                         </td>
                         <td class="p-4 font-bold text-slate-800">
                             {{ $ligne->produit->nom ?? '—' }}
@@ -61,10 +61,27 @@
                             {{ number_format($ligne->quantite * $ligne->prix_unitaire, 0, ',', ' ') }} FCFA
                         </td>
                         @if($loop->first)
-                            <td class="p-4 text-center" rowspan="{{ $vente->lignes->count() }}">
-                                <a href="{{ route('boutiquier.ventes.show', $vente) }}" class="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                                    <i class=""></i> Actions
-                                </a>
+                            @php $modifiable = $vente->created_at->copy()->addHours(24)->isFuture(); @endphp
+                            <td class="p-4 text-center align-top" rowspan="{{ $vente->lignes->count() }}">
+                                <div class="flex flex-col items-stretch gap-1.5">
+                                    <a href="{{ route('boutiquier.ventes.show', $vente) }}" class="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                        <i class="ri-file-list-3-line mr-1"></i> Ticket
+                                    </a>
+                                    @if($modifiable)
+                                        <a href="{{ route('boutiquier.ventes.edit', $vente) }}" class="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors">
+                                            <i class="ri-edit-line mr-1"></i> Modifier
+                                        </a>
+                                        <form action="{{ route('boutiquier.ventes.destroy', $vente) }}" method="POST" onsubmit="return confirm('Supprimer définitivement cette vente ? Le stock sera restauré.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="w-full inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition-colors">
+                                                <i class="ri-delete-bin-line mr-1"></i> Supprimer
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-[10px] text-slate-400 italic">Verrouillée (&gt; 24h)</span>
+                                    @endif
+                                </div>
                             </td>
                         @endif
                     </tr>
@@ -73,7 +90,7 @@
                     <tr>
                         <td colspan="5" class="p-12 text-center text-slate-500">
                             <i class="ri-inbox-line text-4xl block mb-2"></i>
-                            Aucune vente enregistrée aujourd'hui.
+                            Aucune vente enregistrée cette semaine.
                         </td>
                     </tr>
                 @endforelse
