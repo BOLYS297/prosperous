@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             GrossisteSeeder::class,
             PrixGrossisteSeeder::class,
             StockBoutique1Seeder::class,
+            StockBoutique2Seeder::class,
         ]);
     }
 }
