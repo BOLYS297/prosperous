@@ -45,7 +45,15 @@ class LoginController extends Controller
             $interval = HoraireConnexion::getCurrentIntervalForUser($user);
             $now = Carbon::now();
 
-            if ($interval) {
+            // La déduction de retard ne concerne que la PREMIÈRE connexion du jour.
+            // Une reconnexion (session expirée, appareil non reconnu, etc.) NE doit
+            // PAS être traitée comme un nouveau retard.
+            $dejaConnecteAujourdhui = LogActivite::where('user_id', $user->id)
+                ->where('action', 'connexion')
+                ->whereDate('created_at', $now->toDateString())
+                ->exists();
+
+            if ($interval && ! $dejaConnecteAujourdhui) {
                 $scheduledStart = Carbon::createFromFormat('H:i:s', $interval->heure_debut, $now->getTimezone())
                     ->setDate($now->year, $now->month, $now->day);
 
@@ -60,9 +68,10 @@ class LoginController extends Controller
                     $hoursLate = intdiv($minutesLate, 60);
                     $minutesRemaining = $minutesLate % 60;
 
+                    // Sécurité supplémentaire : une seule déduction de connexion par
+                    // jour, quel que soit son statut (pending / approved / rejected).
                     if (!Deduction::where('user_id', $user->id)
                         ->whereDate('actual_login_at', $now->toDateString())
-                        ->where('status', 'pending')
                         ->where('event_type', 'login')
                         ->exists()) {
                         $deduction = Deduction::create([
