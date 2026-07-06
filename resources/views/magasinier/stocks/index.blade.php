@@ -19,10 +19,10 @@
             </div>
         </form>
     </div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto overflow-y-auto max-h-[65vh]">
         <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-white/40 border-b border-white/50 text-sm text-slate-600">
+            <thead class="sticky top-0 z-10">
+                <tr class="bg-white border-b border-slate-200 text-sm text-slate-600 shadow-sm">
                     <th class="p-4 font-semibold w-16">Image</th>
                     <th class="p-4 font-semibold">Nom du Produit</th>
                     <th class="p-4 font-semibold">Référence</th>

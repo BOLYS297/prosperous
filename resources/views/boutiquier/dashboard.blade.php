@@ -232,8 +232,9 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         @forelse($produits as $produit)
             @php
-                $stock = $produit->stocks->first();
-                $enStock = $stock && $stock->quantite > 0;
+                // Somme de TOUS les lots de la boutique (le système FIFO crée plusieurs lignes stock)
+                $quantiteStock = $produit->stocks->sum('quantite');
+                $enStock = $quantiteStock > 0;
             @endphp
             <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
                 <div class="flex-1">
@@ -251,7 +252,7 @@
                             <p class="text-xs text-slate-500 font-mono bg-slate-50 inline-block px-2 py-1 rounded mt-1">{{ $produit->reference }}</p>
                         @endif
                         <p class="text-blue-600 font-black text-xl mt-2"> <span class="product-price-label">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> FCFA</p>
-                        <p class="text-xs text-slate-500 mt-1">{{ $enStock ? 'En stock' : 'Rupture de stock' }}{{ $enStock ? ' • Qté: ' . $stock->quantite : '' }}</p>
+                        <p class="text-xs text-slate-500 mt-1">{{ $enStock ? 'En stock' : 'Rupture de stock' }}{{ $enStock ? ' • Qté: ' . $quantiteStock : '' }}</p>
                         @if(($produit->otherBoutiqueStocks ?? collect())->isNotEmpty())
                             <div class="mt-3 rounded-xl display-block border border-amber-200 bg-amber-50 p-3 max-h-40 overflow-y-auto">
                                 <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Autres boutiques</p>
@@ -270,7 +271,7 @@
                             <button type="button" data-action="decrease" data-target="qty-{{ $produit->id }}" class="w-11 h-11 bg-slate-200 hover:bg-slate-300 rounded-xl flex items-center justify-center text-xl font-bold text-slate-700 transition-colors" {{ $enStock ? '' : 'disabled' }}>
                                 <i class="ri-subtract-line"></i>
                             </button>
-                            <input id="qty-{{ $produit->id }}" type="number" name="quantite" value="1" min="1" max="{{ $stock?->quantite ?? 1 }}" class="qty-input w-20 text-center text-2xl font-black px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none" {{ $enStock ? '' : 'disabled' }}>
+                            <input id="qty-{{ $produit->id }}" type="number" name="quantite" value="1" min="1" max="{{ $quantiteStock > 0 ? $quantiteStock : 1 }}" class="qty-input w-20 text-center text-2xl font-black px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none" {{ $enStock ? '' : 'disabled' }}>
                             <button type="button" data-action="increase" data-target="qty-{{ $produit->id }}" class="w-11 h-11 bg-slate-200 hover:bg-slate-300 rounded-xl flex items-center justify-center text-xl font-bold text-slate-700 transition-colors" {{ $enStock ? '' : 'disabled' }}>
                                 <i class="ri-add-line"></i>
                             </button>

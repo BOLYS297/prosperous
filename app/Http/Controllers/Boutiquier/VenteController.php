@@ -127,15 +127,20 @@ class VenteController extends Controller
     {
         $boutiqueId = Auth::user()->boutique_id;
 
+        // Historique HEBDOMADAIRE (lundi -> dimanche de la semaine en cours) :
+        // les tickets restent téléchargeables toute la semaine.
+        $debutSemaine = now()->startOfWeek();
+        $finSemaine = now()->endOfWeek();
+
         $ventes = Vente::with(['lignes.produit', 'user'])
             ->where('boutique_id', $boutiqueId)
-            ->whereDate('created_at', today())
+            ->whereBetween('created_at', [$debutSemaine, $finSemaine])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalJour = $ventes->sum('montant_total');
+        $totalSemaine = $ventes->sum('montant_total');
 
-        return view('boutiquier.historique', compact('ventes', 'totalJour'));
+        return view('boutiquier.historique', compact('ventes', 'totalSemaine', 'debutSemaine', 'finSemaine'));
     }
 
     public function show(Vente $vente)

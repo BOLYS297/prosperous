@@ -34,13 +34,22 @@ class DashboardController extends Controller
                 ->get();
 
             $stockByBoutique = \App\Models\Stock::whereIn('boutique_id', $visibleBoutiques->pluck('id'))
+                ->where('quantite', '>', 0)
                 ->with('boutique')
                 ->get()
                 ->groupBy('produit_id');
 
             $produits->each(function ($produit) use ($stockByBoutique) {
-                $produit->otherBoutiqueStocks = $stockByBoutique->get($produit->id, collect())
-                    ->sortBy(fn($stock) => $stock->boutique?->nom ?? '')
+                // Somme des lots par boutique (évite d'afficher plusieurs lignes / des 0)
+                $produit->otherBoutiqueStocks = ($stockByBoutique->get($produit->id) ?? collect())
+                    ->groupBy('boutique_id')
+                    ->map(function ($lots) {
+                        return (object) [
+                            'boutique' => $lots->first()->boutique,
+                            'quantite' => $lots->sum('quantite'),
+                        ];
+                    })
+                    ->sortBy(fn($item) => $item->boutique?->nom ?? '')
                     ->values();
             });
         }
