@@ -378,11 +378,20 @@
                     const line = document.createElement('div');
                     line.className = 'rounded-2xl border border-slate-200 p-4 bg-slate-50 flex items-center justify-between gap-4';
                     line.innerHTML = `
-                        <div>
-                            <div class="font-semibold text-slate-900">${item.nom}</div>
-                            <div class="text-xs text-slate-500">Qté: ${item.quantite} × ${new Intl.NumberFormat('fr-FR').format(item.unitPrice)} FCFA</div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-slate-900 truncate">${item.nom}</div>
+                            <div class="text-xs text-slate-500">${new Intl.NumberFormat('fr-FR').format(item.unitPrice)} FCFA / u.</div>
+                            <div class="mt-2 flex items-center gap-2">
+                                <button type="button" data-action="cart-decrease" data-produit-id="${item.produitId}" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 rounded-lg flex items-center justify-center text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed" ${item.quantite <= 1 ? 'disabled' : ''} aria-label="Diminuer">
+                                    <i class="ri-subtract-line"></i>
+                                </button>
+                                <span class="w-8 text-center font-bold text-slate-900">${item.quantite}</span>
+                                <button type="button" data-action="cart-increase" data-produit-id="${item.produitId}" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 rounded-lg flex items-center justify-center text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed" ${item.maxStock && item.quantite >= item.maxStock ? 'disabled' : ''} aria-label="Augmenter">
+                                    <i class="ri-add-line"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right shrink-0">
                             <div class="text-slate-800 font-bold">${new Intl.NumberFormat('fr-FR').format(item.unitPrice * item.quantite)} FCFA</div>
                             <button type="button" data-action="remove-cart-item" data-produit-id="${item.produitId}" class="mt-2 text-xs text-rose-600 hover:text-rose-800">Supprimer</button>
                         </div>
@@ -464,18 +473,23 @@
             const quantityInput = card.querySelector('.qty-input');
             const priceLabel = card.querySelector('.product-price-label');
             const quantity = parseInt(quantityInput.value, 10) || 1;
+            const maxStock = parseInt(quantityInput.getAttribute('max'), 10) || quantity;
             const unitPrice = Number(priceLabel.textContent.replace(/\s/g, '').replace('FCFA', '')) || parseFloat(card.dataset.clientPrice) || 0;
             const productName = card.querySelector('h4')?.textContent.trim() || 'Produit';
 
             if (!cart[productId]) {
                 cart[productId] = {
                     produitId: productId,
-                    quantite: quantity,
+                    quantite: Math.min(quantity, maxStock),
                     unitPrice,
+                    maxStock,
                     nom: productName,
                 };
             } else {
-                cart[productId].quantite += quantity;
+                // Ne jamais dépasser le stock disponible
+                cart[productId].quantite = Math.min(cart[productId].quantite + quantity, maxStock);
+                cart[productId].unitPrice = unitPrice;
+                cart[productId].maxStock = maxStock;
             }
 
             updateCartDisplay();
@@ -586,12 +600,39 @@
         }
 
         cartItemsContainer.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-action="remove-cart-item"]');
-            if (!button) return;
-            const productId = button.dataset.produitId;
-            if (cart[productId]) {
-                delete cart[productId];
-                updateCartDisplay();
+            const removeBtn = event.target.closest('[data-action="remove-cart-item"]');
+            if (removeBtn) {
+                const productId = removeBtn.dataset.produitId;
+                if (cart[productId]) {
+                    delete cart[productId];
+                    updateCartDisplay();
+                }
+                return;
+            }
+
+            const decreaseBtn = event.target.closest('[data-action="cart-decrease"]');
+            if (decreaseBtn) {
+                const productId = decreaseBtn.dataset.produitId;
+                // Décrémente sans jamais passer sous 1 (utiliser "Supprimer" pour retirer)
+                if (cart[productId] && cart[productId].quantite > 1) {
+                    cart[productId].quantite -= 1;
+                    updateCartDisplay();
+                }
+                return;
+            }
+
+            const increaseBtn = event.target.closest('[data-action="cart-increase"]');
+            if (increaseBtn) {
+                const productId = increaseBtn.dataset.produitId;
+                // Incrémente sans jamais dépasser le stock disponible
+                if (cart[productId]) {
+                    const max = cart[productId].maxStock || Infinity;
+                    if (cart[productId].quantite < max) {
+                        cart[productId].quantite += 1;
+                        updateCartDisplay();
+                    }
+                }
+                return;
             }
         });
 
