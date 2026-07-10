@@ -183,9 +183,15 @@ class VenteController extends Controller
         }
 
         $vente->load(['lignes.produit', 'user']);
-        $produits = \App\Models\Produit::all();
 
-        return view('boutiquier.ventes.edit', compact('vente', 'produits'));
+        // Produits avec le stock de LA boutique (pour prix FIFO + dispo en direct)
+        $produits = \App\Models\Produit::with(['stocks' => function ($query) use ($boutiqueId) {
+            $query->where('boutique_id', $boutiqueId);
+        }])->orderBy('nom')->get();
+
+        $grossistes = \App\Models\Grossiste::with('prixProduits')->get();
+
+        return view('boutiquier.ventes.edit', compact('vente', 'produits', 'grossistes'));
     }
 
     public function update(Request $request, Vente $vente)
