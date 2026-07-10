@@ -161,6 +161,7 @@
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-transparent p-6">
                 @include('components.shift-countdown')
                 @include('components.offline-queue-status')
+                @include('components.offline-failed-status')
                 @yield('content')
             </main>
         </div>

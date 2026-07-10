@@ -5,6 +5,8 @@ import {
     removeSyncQueueItem,
     addSyncQueueItem,
     addFailedSyncItem,
+    getFailedSyncItems,
+    removeFailedSyncItem,
 } from "./indexeddb";
 
 const OFFLINE_DATA_URL = "/offline-data";
@@ -150,7 +152,84 @@ async function refreshOfflineQueueStatus() {
     const items = await getSyncQueueItems();
     dispatchOfflineQueueUpdated(items.length, items);
     updateOfflineQueuePanel(items);
+    await updateOfflineFailedPanel();
     return items;
+}
+
+// Panneau "Actions non synchronisées" : liste les actions rejouées mais REFUSÉES
+// par le serveur (archivées dans sync_failed) pour consultation / ressaisie.
+async function updateOfflineFailedPanel() {
+    const panel = document.getElementById("offline-failed-panel");
+    const title = document.getElementById("offline-failed-title");
+    const list = document.getElementById("offline-failed-list");
+    const clearBtn = document.getElementById("offline-failed-clear");
+    if (!panel || !title || !list) {
+        return;
+    }
+
+    let items = [];
+    try {
+        items = await getFailedSyncItems();
+    } catch (error) {
+        items = [];
+    }
+
+    if (!items || items.length === 0) {
+        panel.classList.add("hidden");
+        list.innerHTML = "";
+        return;
+    }
+
+    panel.classList.remove("hidden");
+    title.textContent = `${items.length} action(s) refusée(s)`;
+    list.innerHTML = "";
+
+    items.forEach((item) => {
+        const entry = document.createElement("div");
+        entry.className = "rounded-2xl border border-rose-200 bg-rose-50 p-3";
+
+        const label = document.createElement("div");
+        label.className = "font-semibold text-slate-900";
+        label.textContent = buildQueueLabel(item);
+
+        const err = document.createElement("div");
+        err.className = "text-xs text-rose-700 mt-1";
+        err.textContent = item.error || "Refusée par le serveur.";
+
+        const meta = document.createElement("div");
+        meta.className = "text-[11px] text-slate-500 mt-1";
+        const when = item.failed_at
+            ? new Date(item.failed_at).toLocaleString()
+            : "";
+        meta.textContent = `${buildQueueDescription(item)} • ${when}`;
+
+        const dismiss = document.createElement("button");
+        dismiss.type = "button";
+        dismiss.className =
+            "mt-2 text-xs text-slate-500 hover:text-slate-800 underline";
+        dismiss.textContent = "J'ai traité — retirer";
+        dismiss.addEventListener("click", async () => {
+            await removeFailedSyncItem(item.id);
+            await updateOfflineFailedPanel();
+        });
+
+        entry.appendChild(label);
+        entry.appendChild(err);
+        entry.appendChild(meta);
+        entry.appendChild(dismiss);
+        list.appendChild(entry);
+    });
+
+    if (clearBtn && !clearBtn.dataset.initialized) {
+        clearBtn.addEventListener("click", async () => {
+            const all = await getFailedSyncItems();
+            for (const it of all) {
+                await removeFailedSyncItem(it.id);
+            }
+            await updateOfflineFailedPanel();
+        });
+        clearBtn.dataset.initialized = "true";
+    }
 }
 
 async function fetchOfflineDataFromServer() {
