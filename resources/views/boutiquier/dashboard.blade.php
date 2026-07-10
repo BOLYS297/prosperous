@@ -260,11 +260,16 @@
                         @endphp
                         @if($lotsFifo->count() > 0)
                             <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-2 max-h-28 overflow-y-auto">
-                                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Écoulement FIFO — prix par lot</p>
+                                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-1">Écoulement FIFO — prix par lot <span class="text-slate-400 normal-case">(client / <span class="text-emerald-600">grossiste</span>)</span></p>
                                 @foreach($lotsFifo as $i => $lot)
                                     <div class="flex items-center justify-between text-xs py-0.5 {{ $i === 0 ? 'font-bold text-blue-700' : 'text-slate-500' }}">
                                         <span>{{ $i === 0 ? '➜ ' : '' }}{{ $lot->quantite }} u.</span>
-                                        <span>{{ number_format($lot->prix_vente_unitaire ?? $produit->prix_vente, 0, ',', ' ') }} FCFA</span>
+                                        <span class="text-right">
+                                            {{ number_format($lot->prix_vente_unitaire ?? $produit->prix_vente, 0, ',', ' ') }} F
+                                            @if($lot->prix_vente_grossiste_unitaire !== null)
+                                                <span class="text-[10px] text-emerald-600">/ {{ number_format($lot->prix_vente_grossiste_unitaire, 0, ',', ' ') }} F</span>
+                                            @endif
+                                        </span>
                                     </div>
                                 @endforeach
                             </div>
