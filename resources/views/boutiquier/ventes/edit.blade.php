@@ -72,7 +72,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Produit</label>
-                        <select name="lignes[{{ $index }}][produit_id]" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <select name="lignes[{{ $index }}][produit_id]" class="ligne-produit w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             <option value="">Sélectionner un produit</option>
                             @foreach($produits as $produit)
                                 <option value="{{ $produit->id }}" {{ $ligne->produit_id == $produit->id ? 'selected' : '' }}>
@@ -86,10 +86,16 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">Quantité</label>
-                        <input type="number" name="lignes[{{ $index }}][quantite]" value="{{ $ligne->quantite }}" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required>
+                        <input type="number" name="lignes[{{ $index }}][quantite]" value="{{ $ligne->quantite }}" class="ligne-quantite w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required>
                     </div>
+                    <div class="md:col-span-2 ligne-info flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600"></div>
                 </div>
             @endforeach
+        </div>
+
+        <div class="flex items-center justify-between border-t border-slate-200 pt-4 mb-6">
+            <span class="text-sm font-medium text-slate-500">Total du ticket</span>
+            <span id="ticket-total" class="text-2xl font-black text-slate-900">0 FCFA</span>
         </div>
 
         <div class="flex gap-3 justify-end">
@@ -119,12 +125,140 @@
     </form>
 </div>
 
+@php
+    // Données produits limitées au stock de LA boutique (prix FIFO du lot actif + dispo)
+    $produitsJson = $produits->map(function ($p) {
+        $lotActif = $p->stocks->where('quantite', '>', 0)->sortBy('created_at')->first();
+
+        return [
+            'id' => $p->id,
+            'stock' => (int) $p->stocks->sum('quantite'),
+            'prix_client' => $lotActif && $lotActif->prix_vente_unitaire !== null
+                ? (float) $lotActif->prix_vente_unitaire
+                : (float) ($p->getRawOriginal('prix_vente') ?? 0),
+            'prix_grossiste_lot' => $lotActif && $lotActif->prix_vente_grossiste_unitaire !== null
+                ? (float) $lotActif->prix_vente_grossiste_unitaire
+                : null,
+        ];
+    })->values();
+
+    $grossistesJson = $grossistes->map(function ($g) {
+        return [
+            'id' => $g->id,
+            'nom' => $g->nom,
+            'prix' => $g->prixProduits->pluck('prix_vente', 'produit_id'),
+        ];
+    })->values();
+@endphp
 <script>
-    document.getElementById('is_grossiste').addEventListener('change', function() {
+    const EDIT_PRODUITS = @json($produitsJson);
+    const EDIT_GROSSISTES = @json($grossistesJson);
+
+    const produitMap = {};
+    EDIT_PRODUITS.forEach((p) => { produitMap[p.id] = p; });
+
+    const fmtMoney = (n) => new Intl.NumberFormat('fr-FR').format(Math.round(n || 0));
+
+    function isGrossisteSale() {
+        return document.getElementById('is_grossiste').checked;
+    }
+
+    function selectedGrossisteId() {
+        return document.getElementById('grossiste_id').value;
+    }
+
+    // Renvoie le prix unitaire applicable + disponibilité pour un produit
+    function unitPriceInfo(produitId) {
+        const p = produitMap[produitId];
+        if (!p) {
+            return { price: 0, available: false, stock: 0, note: 'Produit introuvable' };
+        }
+
+        if (isGrossisteSale()) {
+            const g = EDIT_GROSSISTES.find((x) => String(x.id) === String(selectedGrossisteId()));
+            // 1) Prix négocié pour CE grossiste (override)
+            if (g && g.prix && g.prix[produitId] !== undefined && g.prix[produitId] !== null) {
+                return { price: parseFloat(g.prix[produitId]) || 0, available: true, stock: p.stock, note: 'Tarif ' + g.nom };
+            }
+            // 2) Prix grossiste défini sur le lot (FIFO)
+            if (p.prix_grossiste_lot !== null && p.prix_grossiste_lot > 0) {
+                return { price: parseFloat(p.prix_grossiste_lot) || 0, available: true, stock: p.stock, note: 'Prix grossiste du lot' };
+            }
+            // 3) Aucun prix grossiste disponible
+            if (!g) {
+                return { price: 0, available: false, stock: p.stock, note: 'Sélectionnez un grossiste' };
+            }
+            return { price: 0, available: false, stock: p.stock, note: 'Aucun prix grossiste défini' };
+        }
+
+        return { price: parseFloat(p.prix_client) || 0, available: true, stock: p.stock, note: 'Prix client' };
+    }
+
+    function updateLine(lineEl) {
+        const select = lineEl.querySelector('.ligne-produit');
+        const qtyInput = lineEl.querySelector('.ligne-quantite');
+        const info = lineEl.querySelector('.ligne-info');
+        if (!select || !qtyInput || !info) return 0;
+
+        const produitId = select.value;
+        const qty = parseInt(qtyInput.value, 10) || 0;
+
+        if (!produitId) {
+            info.innerHTML = '<span class="text-slate-400">Sélectionnez un produit pour voir le prix et le stock.</span>';
+            return 0;
+        }
+
+        const pr = unitPriceInfo(produitId);
+        const lineTotal = pr.available ? pr.price * qty : 0;
+
+        const parts = [];
+        parts.push(`<span>Prix unitaire : <b>${fmtMoney(pr.price)} FCFA</b></span>`);
+        parts.push(`<span>Stock : <b class="${pr.stock <= 0 ? 'text-rose-600' : 'text-slate-800'}">${pr.stock}</b></span>`);
+        parts.push(`<span>Total ligne : <b>${fmtMoney(lineTotal)} FCFA</b></span>`);
+
+        if (pr.stock <= 0) {
+            parts.push('<span class="font-semibold text-rose-600"><i class="ri-error-warning-line"></i> Rupture de stock</span>');
+        } else if (qty > pr.stock) {
+            parts.push(`<span class="font-semibold text-rose-600"><i class="ri-error-warning-line"></i> Quantité demandée (${qty}) > stock (${pr.stock})</span>`);
+        }
+
+        if (!pr.available) {
+            parts.push(`<span class="font-semibold text-rose-600">${pr.note}</span>`);
+        } else {
+            parts.push(`<span class="text-emerald-600">${pr.note}</span>`);
+        }
+
+        info.innerHTML = parts.join('');
+        return lineTotal;
+    }
+
+    function updateTicketTotal() {
+        let total = 0;
+        document.querySelectorAll('.vente-ligne').forEach((line) => { total += updateLine(line); });
+        const el = document.getElementById('ticket-total');
+        if (el) el.textContent = fmtMoney(total) + ' FCFA';
+    }
+
+    document.getElementById('is_grossiste').addEventListener('change', function () {
         const container = document.getElementById('grossiste_container');
         container.style.display = this.checked ? 'block' : 'none';
         if (!this.checked) {
             document.getElementById('grossiste_id').value = '';
+        }
+        updateTicketTotal();
+    });
+
+    document.getElementById('grossiste_id').addEventListener('change', updateTicketTotal);
+
+    // Changement produit / quantité (délégation — fonctionne aussi sur d'éventuelles lignes ajoutées)
+    document.addEventListener('change', function (e) {
+        if (e.target.classList && e.target.classList.contains('ligne-produit')) {
+            updateTicketTotal();
+        }
+    });
+    document.addEventListener('input', function (e) {
+        if (e.target.classList && (e.target.classList.contains('ligne-quantite') || e.target.classList.contains('ligne-produit'))) {
+            updateTicketTotal();
         }
     });
 
@@ -134,6 +268,9 @@
             return;
         }
         line.remove();
+        updateTicketTotal();
     }
+
+    document.addEventListener('DOMContentLoaded', updateTicketTotal);
 </script>
 @endsection
