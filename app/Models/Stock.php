@@ -12,6 +12,7 @@ class Stock extends Model
         'quantite',
         'prix_achat_unitaire',
         'prix_vente_unitaire',
+        'prix_vente_grossiste_unitaire',
         'source_type',
         'source_id',
     ];
@@ -20,6 +21,7 @@ class Stock extends Model
         'quantite' => 'integer',
         'prix_achat_unitaire' => 'decimal:2',
         'prix_vente_unitaire' => 'decimal:2',
+        'prix_vente_grossiste_unitaire' => 'decimal:2',
     ];
 
     public function boutique()
@@ -32,7 +34,7 @@ class Stock extends Model
         return $this->belongsTo(Produit::class);
     }
 
-    public static function addBatch(int $boutiqueId, int $produitId, int $quantite, ?float $prixAchat = null, ?float $prixVente = null, ?string $sourceType = null, ?int $sourceId = null): self
+    public static function addBatch(int $boutiqueId, int $produitId, int $quantite, ?float $prixAchat = null, ?float $prixVente = null, ?float $prixVenteGrossiste = null, ?string $sourceType = null, ?int $sourceId = null): self
     {
         return static::create([
             'boutique_id' => $boutiqueId,
@@ -40,6 +42,7 @@ class Stock extends Model
             'quantite' => $quantite,
             'prix_achat_unitaire' => $prixAchat,
             'prix_vente_unitaire' => $prixVente,
+            'prix_vente_grossiste_unitaire' => $prixVenteGrossiste,
             'source_type' => $sourceType,
             'source_id' => $sourceId,
         ]);
@@ -85,6 +88,7 @@ class Stock extends Model
                 'stock' => $stock,
                 'quantite' => $take,
                 'prix_unitaire' => $stock->prix_vente_unitaire ?? $fallbackSalePrice,
+                'prix_grossiste' => $stock->prix_vente_grossiste_unitaire,
             ];
         }
 

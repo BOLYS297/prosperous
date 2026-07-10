@@ -77,7 +77,11 @@
                     </div>
                     <div class="w-32">
                         <label class="block text-xs font-medium text-slate-500 mb-1">Prix de Vente</label>
-                        <input type="number" step="0.01" name="lignes[{{ $index }}][prix_vente]" value="{{ old('lignes.'.$index.'.prix_vente', $ligne->produit->prix_vente ?? '') }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <input type="number" step="0.01" name="lignes[{{ $index }}][prix_vente]" value="{{ old('lignes.'.$index.'.prix_vente', $ligne->prix_vente ?? $ligne->produit->prix_vente ?? '') }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    </div>
+                    <div class="w-32">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Prix Grossiste</label>
+                        <input type="number" step="0.01" name="lignes[{{ $index }}][prix_vente_grossiste]" value="{{ old('lignes.'.$index.'.prix_vente_grossiste', $ligne->prix_vente_grossiste ?? '') }}" placeholder="Optionnel" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
                     </div>
                     <div class="w-24">
                         <label class="block text-xs font-medium text-slate-500 mb-1">Qté</label>
