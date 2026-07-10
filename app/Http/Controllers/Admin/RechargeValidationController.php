@@ -123,6 +123,7 @@ class RechargeValidationController extends Controller
                     $quantite,
                     $achatLigne?->prix_unitaire ?? $produit?->prix_achat ?? 0,
                     $achatLigne?->prix_vente ?? $produit?->prix_vente ?? $achatLigne?->prix_unitaire ?? 0,
+                    $achatLigne?->prix_vente_grossiste,
                     'recharge',
                     $recharge->id
                 );

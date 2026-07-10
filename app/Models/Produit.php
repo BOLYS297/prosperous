@@ -47,4 +47,23 @@ class Produit extends Model
 
         return $value;
     }
+
+    /**
+     * Prix de vente GROSSISTE du lot actif (le plus ancien en stock) — suit le FIFO.
+     * Retourne null si aucun lot ou aucun prix grossiste défini.
+     */
+    public function getPrixVenteGrossisteAttribute()
+    {
+        $activeStock = $this->stocks()
+            ->where('quantite', '>', 0)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first();
+
+        if ($activeStock && $activeStock->prix_vente_grossiste_unitaire !== null) {
+            return (float) $activeStock->prix_vente_grossiste_unitaire;
+        }
+
+        return null;
+    }
 }

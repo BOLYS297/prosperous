@@ -59,24 +59,21 @@ class VenteController extends Controller
                     throw new \Exception('Quantité invalide pour le produit ' . $produit->nom);
                 }
 
-                $unitPrice = $produit->prix_vente;
+                // Override grossiste OPTIONNEL : un tarif spécifique défini pour CE grossiste
+                // (table PrixGrossiste) écrase le prix grossiste du lot.
+                $prixGrossisteOverride = null;
                 if ($isGrossiste) {
-                    $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
+                    $prixGrossisteOverride = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
                         ->where('produit_id', $produit->id)
                         ->first();
-
-                    if (!$prixGrossiste) {
-                        throw new \Exception('Aucun tarif grossiste défini pour le produit ' . $produit->nom . '.');
-                    }
-
-                    $unitPrice = $prixGrossiste->prix_vente;
                 }
 
-                $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $produit->id, $quantite, $isGrossiste ? null : $unitPrice);
+                $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $produit->id, $quantite, $isGrossiste ? null : $produit->prix_vente);
 
-                if ($isGrossiste) {
-                    $lineTotal = $unitPrice * $quantite;
-                    $total += $lineTotal;
+                if ($isGrossiste && $prixGrossisteOverride) {
+                    // Tarif grossiste spécifique : une seule ligne au prix du grossiste.
+                    $unitPrice = (float) $prixGrossisteOverride->prix_vente;
+                    $total += $unitPrice * $quantite;
 
                     \App\Models\VenteLigne::create([
                         'vente_id' => $vente->id,
@@ -86,11 +83,19 @@ class VenteController extends Controller
                         'est_grossiste' => true,
                     ]);
                 } else {
-                    // Agréger les lots consommés pour créer une seule ligne par produit
+                    // FIFO : chaque lot à SON prix.
+                    //  - vente grossiste  -> prix grossiste du lot (repli : prix client du lot, puis prix produit)
+                    //  - vente client     -> prix client du lot
                     $prodQty = 0;
                     $prodTotal = 0;
                     foreach ($consumedStocks as $consumedStock) {
-                        $lotPrice = $consumedStock['prix_unitaire'] ?? $produit->prix_vente;
+                        if ($isGrossiste) {
+                            $lotPrice = $consumedStock['prix_grossiste']
+                                ?? $consumedStock['prix_unitaire']
+                                ?? $produit->prix_vente;
+                        } else {
+                            $lotPrice = $consumedStock['prix_unitaire'] ?? $produit->prix_vente;
+                        }
                         $lotQty = $consumedStock['quantite'];
                         $prodQty += $lotQty;
                         $prodTotal += $lotPrice * $lotQty;
@@ -105,7 +110,7 @@ class VenteController extends Controller
                             'produit_id' => $produit->id,
                             'quantite' => $prodQty,
                             'prix_unitaire' => $avgUnitPrice,
-                            'est_grossiste' => false,
+                            'est_grossiste' => $isGrossiste,
                         ]);
                     }
                 }
@@ -212,24 +217,20 @@ class VenteController extends Controller
                 return back()->with('error', 'Produit introuvable.');
             }
 
-            $unitPrice = $produit->prix_vente;
+            // Override grossiste OPTIONNEL (tarif spécifique du grossiste) ; sinon prix du lot.
+            $grossisteOverride = null;
             if ($isGrossiste) {
                 $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
                     ->where('produit_id', $produit->id)
                     ->first();
-
-                if (!$prixGrossiste) {
-                    return back()->with('error', 'Aucun tarif grossiste défini pour le produit ' . $produit->nom . '.');
-                }
-
-                $unitPrice = $prixGrossiste->prix_vente;
+                $grossisteOverride = $prixGrossiste ? (float) $prixGrossiste->prix_vente : null;
             }
 
             $newLineMap[] = [
                 'produit_id' => $produit->id,
                 'quantite' => (int) $lineData['quantite'],
-                'prix_unitaire' => $unitPrice,
-                'est_grossiste' => $isGrossiste,
+                'grossiste_override' => $grossisteOverride,
+                'fallback_price' => (float) $produit->prix_vente,
             ];
         }
 
@@ -244,29 +245,38 @@ class VenteController extends Controller
 
             $newTotal = 0;
             foreach ($newLineMap as $lineData) {
-                $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $lineData['produit_id'], $lineData['quantite'], $lineData['est_grossiste'] ? null : $lineData['prix_unitaire']);
+                $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $lineData['produit_id'], $lineData['quantite'], $isGrossiste ? null : $lineData['fallback_price']);
 
-                if ($lineData['est_grossiste']) {
+                if ($isGrossiste && $lineData['grossiste_override'] !== null) {
+                    // Tarif grossiste spécifique : une seule ligne.
+                    $unitPrice = $lineData['grossiste_override'];
                     \App\Models\VenteLigne::create([
                         'vente_id' => $vente->id,
                         'produit_id' => $lineData['produit_id'],
                         'quantite' => $lineData['quantite'],
-                        'prix_unitaire' => $lineData['prix_unitaire'],
+                        'prix_unitaire' => $unitPrice,
                         'est_grossiste' => true,
                     ]);
 
-                    $newTotal += $lineData['prix_unitaire'] * $lineData['quantite'];
+                    $newTotal += $unitPrice * $lineData['quantite'];
                 } else {
+                    // FIFO : chaque lot à son prix (grossiste par lot si vente grossiste).
                     foreach ($consumedStocks as $consumedStock) {
                         $lotQty = $consumedStock['quantite'];
-                        $lotPrice = $consumedStock['prix_unitaire'] ?? $lineData['prix_unitaire'];
+                        if ($isGrossiste) {
+                            $lotPrice = $consumedStock['prix_grossiste']
+                                ?? $consumedStock['prix_unitaire']
+                                ?? $lineData['fallback_price'];
+                        } else {
+                            $lotPrice = $consumedStock['prix_unitaire'] ?? $lineData['fallback_price'];
+                        }
 
                         \App\Models\VenteLigne::create([
                             'vente_id' => $vente->id,
                             'produit_id' => $lineData['produit_id'],
                             'quantite' => $lotQty,
                             'prix_unitaire' => $lotPrice,
-                            'est_grossiste' => false,
+                            'est_grossiste' => $isGrossiste,
                         ]);
 
                         $newTotal += $lotPrice * $lotQty;

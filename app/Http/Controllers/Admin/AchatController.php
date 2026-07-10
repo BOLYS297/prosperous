@@ -72,6 +72,7 @@ class AchatController extends Controller
             'lignes.*.quantite' => 'required|integer|min:1',
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
             'lignes.*.prix_vente' => 'nullable|numeric|min:0',
+            'lignes.*.prix_vente_grossiste' => 'nullable|numeric|min:0',
         ];
 
         // Make debit_boutique_id required only when statut === 'paye'.
@@ -108,6 +109,7 @@ class AchatController extends Controller
                     'quantite' => $ligne['quantite'],
                     'prix_unitaire' => $ligne['prix_unitaire'],
                     'prix_vente' => isset($ligne['prix_vente']) && $ligne['prix_vente'] !== '' ? $ligne['prix_vente'] : null,
+                    'prix_vente_grossiste' => isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== '' ? $ligne['prix_vente_grossiste'] : null,
                 ]);
 
                 // Mettre à jour les prix du produit (prix d'achat et prix de vente) en base
@@ -130,12 +132,15 @@ class AchatController extends Controller
                         ? $ligne['prix_vente']
                         : $ligne['prix_unitaire'];
 
+                    $batchPrixGrossiste = isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== '' ? $ligne['prix_vente_grossiste'] : null;
+
                     \App\Models\Stock::addBatch(
                         $request->boutique_id,
                         $ligne['produit_id'],
                         $ligne['quantite'],
                         $ligne['prix_unitaire'],
                         $batchPrixVente,
+                        $batchPrixGrossiste,
                         'achat',
                         $achat->id
                     );
@@ -288,6 +293,7 @@ class AchatController extends Controller
             'lignes.*.quantite' => 'required|integer|min:1',
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
             'lignes.*.prix_vente' => 'nullable|numeric|min:0',
+            'lignes.*.prix_vente_grossiste' => 'nullable|numeric|min:0',
         ];
 
         if ($request->input('statut') === 'paye') {
@@ -321,6 +327,7 @@ class AchatController extends Controller
                     'quantite' => $ligne['quantite'],
                     'prix_unitaire' => $ligne['prix_unitaire'],
                     'prix_vente' => isset($ligne['prix_vente']) && $ligne['prix_vente'] !== '' ? $ligne['prix_vente'] : null,
+                    'prix_vente_grossiste' => isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== '' ? $ligne['prix_vente_grossiste'] : null,
                 ]);
 
                 try {
