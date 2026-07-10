@@ -16,9 +16,15 @@ class DetteController extends Controller
     public function index()
     {
         $boutique = Auth::user()->boutique;
+        $boutiqueId = $boutique?->id;
 
-        $dettes = Achat::with(['fournisseur', 'paiements', 'recharge'])
+        $dettes = Achat::with(['fournisseur', 'paiements', 'recharge', 'debitBoutique'])
             ->where('statut', 'dette')
+            ->where(function ($query) use ($boutiqueId) {
+                // Ma boutique voit : les dettes PARTAGÉES (null) + celles QUI LUI SONT ATTRIBUÉES
+                $query->whereNull('debit_boutique_id')
+                    ->orWhere('debit_boutique_id', $boutiqueId);
+            })
             ->get()
             ->filter(function (Achat $achat) {
                 return $achat->reste_a_payer > 0;
@@ -42,6 +48,11 @@ class DetteController extends Controller
         $boutique = Auth::user()->boutique;
         if (! $boutique) {
             return back()->with('error', 'Boutique introuvable.');
+        }
+
+        // Une dette attribuée à une AUTRE boutique ne peut pas être réglée ici.
+        if ($achat->debit_boutique_id !== null && (int) $achat->debit_boutique_id !== (int) $boutique->id) {
+            return back()->with('error', 'Cette dette est attribuée à une autre boutique.');
         }
 
         $montant = round($request->input('montant'), 2);

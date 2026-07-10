@@ -65,7 +65,20 @@
                     <tbody class="text-sm">
                         @foreach($dettes as $achat)
                             <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                <td class="p-4 font-medium text-slate-800">{{ $achat->fournisseur?->nom ?? 'Fournisseur inconnu' }}</td>
+                                <td class="p-4 font-medium text-slate-800">
+                                    {{ $achat->fournisseur?->nom ?? 'Fournisseur inconnu' }}
+                                    <div class="mt-1">
+                                        @if($achat->debit_boutique_id)
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[11px] font-semibold">
+                                                <i class="ri-store-2-line mr-1"></i> Attribuée à {{ $achat->debitBoutique?->nom ?? 'une boutique' }}
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[11px] font-semibold">
+                                                <i class="ri-group-line mr-1"></i> Partagée
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td class="p-4 text-center text-slate-600">{{ number_format($achat->montant_total, 0, ',', ' ') }} FCFA</td>
                                 <td class="p-4 text-center text-emerald-700 font-semibold">{{ number_format($achat->montant_paye, 0, ',', ' ') }} FCFA</td>
                                 <td class="p-4 text-center text-rose-700 font-semibold">{{ number_format($achat->reste_a_payer, 0, ',', ' ') }} FCFA</td>

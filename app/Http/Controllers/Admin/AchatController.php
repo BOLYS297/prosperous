@@ -78,8 +78,8 @@ class AchatController extends Controller
         if ($request->input('statut') === 'paye') {
             $rules['debit_boutique_id'] = 'required|exists:boutiques,id';
         } else {
-            // For 'dette' we accept null / absence to avoid "selected is invalid" when empty string is submitted
-            $rules['debit_boutique_id'] = 'nullable';
+            // Pour une dette : boutique responsable OPTIONNELLE (null = dette partagée par toutes).
+            $rules['debit_boutique_id'] = 'nullable|exists:boutiques,id';
         }
 
         $request->validate($rules);
@@ -94,7 +94,7 @@ class AchatController extends Controller
             $achat = \App\Models\Achat::create([
                 'fournisseur_id' => $request->fournisseur_id,
                 'boutique_id' => $request->boutique_id,
-                'debit_boutique_id' => $request->input('statut') === 'paye' ? $request->debit_boutique_id : null,
+                'debit_boutique_id' => $request->filled('debit_boutique_id') ? $request->debit_boutique_id : null,
                 'statut' => $request->statut,
                 'montant_total' => $montant_total
             ]);
@@ -293,7 +293,7 @@ class AchatController extends Controller
         if ($request->input('statut') === 'paye') {
             $rules['debit_boutique_id'] = 'required|exists:boutiques,id';
         } else {
-            $rules['debit_boutique_id'] = 'nullable';
+            $rules['debit_boutique_id'] = 'nullable|exists:boutiques,id';
         }
 
         $request->validate($rules);
@@ -307,7 +307,7 @@ class AchatController extends Controller
             $achat->update([
                 'fournisseur_id' => $request->fournisseur_id,
                 'boutique_id' => $request->boutique_id,
-                'debit_boutique_id' => $request->input('statut') === 'paye' ? $request->debit_boutique_id : null,
+                'debit_boutique_id' => $request->filled('debit_boutique_id') ? $request->debit_boutique_id : null,
                 'statut' => $request->statut,
                 'montant_total' => $montant_total,
             ]);

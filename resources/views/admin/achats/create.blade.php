@@ -43,20 +43,20 @@
                 <p class="text-xs text-slate-500 mt-2">La destination finale de cet achat est toujours un magasin.</p>
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Boutique à débiter <span class="text-red-500">*</span> (comptant uniquement)</label>
+                <label class="block text-sm font-medium text-slate-700 mb-2" x-text="statut === 'paye' ? 'Boutique à débiter * (comptant)' : 'Dette à la charge de'"></label>
                 <select name="debit_boutique_id" id="debit_boutique_select" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">-- Sélectionner une boutique --</option>
+                    <option value="" x-text="statut === 'dette' ? '— Partagée (toutes les boutiques) —' : '-- Sélectionner une boutique --'"></option>
                     @foreach($allBoutiques as $boutique)
                         <option value="{{ $boutique->id }}">{{ $boutique->nom }}</option>
                     @endforeach
                 </select>
-                <p class="text-xs text-slate-500 mt-2">Le solde de cette boutique sera utilisé pour régler l'achat comptant. (Pas nécessaire pour les dettes)</p>
+                <p class="text-xs text-slate-500 mt-2" x-text="statut === 'paye' ? 'Le solde de cette boutique règle l\'achat comptant.' : 'Choisissez la boutique responsable de la dette, ou laissez « Partagée » pour que toutes les boutiques puissent la régler.'"></p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">Statut du paiement <span class="text-red-500">*</span></label>
                 <select name="statut" x-model="statut" @change="toggleDebitField()" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
                     <option value="paye">Payé comptant (déduit du solde)</option>
-                    <option value="dette">Achat à crédit (Dette partagée par toutes les boutiques)</option>
+                    <option value="dette">Achat à crédit (dette)</option>
                 </select>
             </div>
         </div>
@@ -166,13 +166,11 @@
             },
             toggleDebitField() {
                 const debitSelect = document.getElementById('debit_boutique_select');
+                // Champ visible dans les deux cas ; requis uniquement au comptant.
                 if (this.statut === 'paye') {
                     debitSelect.setAttribute('required', 'required');
-                    debitSelect.closest('div').style.display = 'block';
                 } else {
                     debitSelect.removeAttribute('required');
-                    debitSelect.closest('div').style.display = 'none';
-                    debitSelect.value = '';
                 }
             },
             addLine() {
