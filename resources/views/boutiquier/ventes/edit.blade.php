@@ -136,3 +136,4 @@
         line.remove();
     }
 </script>
+@endsection
