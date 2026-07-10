@@ -28,7 +28,7 @@
                     <th class="p-4 font-semibold">Référence</th>
                     <th class="p-4 font-semibold text-center">Quantité en Stock</th>
                     <th class="p-4 font-semibold text-center">État</th>
-                    <th class="p-4 font-semibold">Lots (FIFO / prix de vente)</th>
+                    <th class="p-4 font-semibold">Lots (FIFO — prix client / <span class="text-emerald-600">grossiste</span>)</th>
                 </tr>
             </thead>
             <tbody id="stocks-tbody" class="text-sm">
@@ -81,7 +81,12 @@
                                     @foreach($lotsFifo as $i => $lot)
                                         <div class="flex items-center justify-between gap-3 text-xs {{ $i === 0 ? 'font-bold text-blue-700' : 'text-slate-500' }}">
                                             <span>{{ $i === 0 ? '➜ ' : '' }}{{ $lot->quantite }} u.</span>
-                                            <span>{{ number_format($lot->prix_vente_unitaire ?? $produit->prix_vente, 0, ',', ' ') }} FCFA</span>
+                                            <span class="text-right whitespace-nowrap">
+                                                {{ number_format($lot->prix_vente_unitaire ?? $produit->prix_vente, 0, ',', ' ') }} F
+                                                @if($lot->prix_vente_grossiste_unitaire !== null)
+                                                    <span class="text-[10px] text-emerald-600">/ {{ number_format($lot->prix_vente_grossiste_unitaire, 0, ',', ' ') }} F</span>
+                                                @endif
+                                            </span>
                                         </div>
                                     @endforeach
                                 </div>
