@@ -4,6 +4,7 @@ import {
     getSyncQueueItems,
     removeSyncQueueItem,
     addSyncQueueItem,
+    addFailedSyncItem,
 } from "./indexeddb";
 
 const OFFLINE_DATA_URL = "/offline-data";
@@ -359,11 +360,17 @@ export async function syncQueuedRequests() {
         }
 
         let syncedCount = 0;
+        let failedCount = 0;
+        let lastFailedMessage = "";
 
         for (const item of queue) {
             try {
                 const headers = {
                     ...item.headers,
+                    // Signale un rejeu hors-ligne : le serveur répond en JSON clair
+                    // (succès / échec) au lieu d'une redirection ambiguë.
+                    "X-Offline-Sync": "1",
+                    Accept: "application/json",
                 };
 
                 // Toujours utiliser le jeton CSRF COURANT (le jeton stocké
@@ -384,10 +391,37 @@ export async function syncQueuedRequests() {
                 });
 
                 if (response.ok) {
+                    // Vrai succès.
                     await removeSyncQueueItem(item.id);
                     syncedCount++;
+                } else if (response.status === 422) {
+                    // Échec métier/validation : l'action NE POURRA PAS aboutir.
+                    // On l'ARCHIVE (au lieu de la perdre) et on la sort de la file.
+                    let message = "Action refusée par le serveur.";
+                    try {
+                        const data = await response.json();
+                        if (data && data.message) {
+                            message = data.message;
+                        }
+                    } catch (e) {
+                        // pas de JSON exploitable
+                    }
+                    await addFailedSyncItem({
+                        url: item.url,
+                        method: item.method,
+                        body: item.body,
+                        created_at: item.created_at,
+                        error: message,
+                        failed_at: new Date().toISOString(),
+                    });
+                    await removeSyncQueueItem(item.id);
+                    failedCount++;
+                    lastFailedMessage = message;
                 }
+                // Autres statuts (401 session expirée, 419, 5xx) : on GARDE l'item
+                // en file pour réessayer à la prochaine synchro.
             } catch (error) {
+                // Erreur réseau : on garde l'item pour réessayer.
                 console.warn("Queued request sync failed:", error);
             }
         }
@@ -399,6 +433,18 @@ export async function syncQueuedRequests() {
                 icon: "ri-refresh-line",
                 showInstall: false,
                 persistent: false,
+            });
+        }
+
+        if (failedCount > 0) {
+            dispatchOfflineStatus({
+                title: `${failedCount} action(s) non synchronisée(s)`,
+                message: lastFailedMessage
+                    ? `Refusée : ${lastFailedMessage}. Vérifiez et ressaisissez si besoin.`
+                    : "Des actions ont été refusées par le serveur et archivées.",
+                icon: "ri-error-warning-line",
+                showInstall: false,
+                persistent: true,
             });
         }
 
