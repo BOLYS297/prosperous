@@ -43,6 +43,7 @@ class VenteController extends Controller
             return back()->with('error', 'Veuillez sélectionner un grossiste pour cette vente.');
         }
 
+        try {
         DB::transaction(function () use ($lignesData, $user, $boutiqueId, $isGrossiste, $grossisteId, $request) {
             $total = 0;
             $vente = \App\Models\Vente::create([
@@ -123,6 +124,13 @@ class VenteController extends Controller
                 $boutique->increment('solde', $total);
             }
         });
+        } catch (\RuntimeException $e) {
+            // Ex. "Stock insuffisant pour cette vente." -> message propre, pas de 500.
+            return back()->with('error', $e->getMessage() ?: 'Stock insuffisant pour cette vente.')->withInput();
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->with('error', "Une erreur est survenue lors de l'enregistrement du ticket.")->withInput();
+        }
 
         $message = 'Ticket enregistré avec succès !';
         return back()->with('success', $message);
@@ -236,6 +244,7 @@ class VenteController extends Controller
 
         $oldTotal = $vente->montant_total;
 
+        try {
         DB::transaction(function () use ($vente, $boutiqueId, $newLineMap, $oldTotal, $grossisteId, $isGrossiste) {
             foreach ($vente->lignes as $existingLine) {
                 \App\Models\Stock::restoreQuantity($boutiqueId, $existingLine->produit_id, $existingLine->quantite);
@@ -294,6 +303,12 @@ class VenteController extends Controller
                 $boutique->increment('solde', $newTotal - $oldTotal);
             }
         });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage() ?: 'Stock insuffisant pour cette modification.')->withInput();
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->with('error', "Une erreur est survenue lors de la modification de la vente.")->withInput();
+        }
 
         return back()->with('success', 'Vente modifiée avec succès !');
     }
