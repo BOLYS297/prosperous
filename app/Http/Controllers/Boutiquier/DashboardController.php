@@ -70,6 +70,11 @@ class DashboardController extends Controller
 
         $dettes = \App\Models\Achat::with('paiements')
             ->where('statut', 'dette')
+            ->where(function ($query) use ($boutiqueId) {
+                // Dettes partagées (null) + dettes attribuées à cette boutique
+                $query->whereNull('debit_boutique_id')
+                    ->orWhere('debit_boutique_id', $boutiqueId);
+            })
             ->get()
             ->filter(fn($achat) => $achat->reste_a_payer > 0);
 

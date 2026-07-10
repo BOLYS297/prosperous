@@ -43,9 +43,9 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Boutique à débiter <span class="text-red-500">*</span> (comptant uniquement)</label>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Boutique concernée <span class="text-slate-400 text-xs font-normal">(débit au comptant, ou responsable de la dette — vide = partagée)</span></label>
                 <select name="debit_boutique_id" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">-- Sélectionner une boutique --</option>
+                    <option value="">— Partagée / aucune —</option>
                     @foreach($allBoutiques as $boutique)
                         <option value="{{ $boutique->id }}" {{ $achat->debit_boutique_id == $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }}</option>
                     @endforeach
@@ -55,7 +55,7 @@
                 <label class="block text-sm font-medium text-slate-700 mb-2">Statut du paiement <span class="text-red-500">*</span></label>
                 <select name="statut" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
                     <option value="paye" {{ $achat->statut === 'paye' ? 'selected' : '' }}>Payé comptant (déduit du solde)</option>
-                    <option value="dette" {{ $achat->statut === 'dette' ? 'selected' : '' }}>Achat à crédit (Dette partagée par toutes les boutiques)</option>
+                    <option value="dette" {{ $achat->statut === 'dette' ? 'selected' : '' }}>Achat à crédit (dette)</option>
                 </select>
             </div>
         </div>
