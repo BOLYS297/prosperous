@@ -1,11 +1,12 @@
 const DB_NAME = "prosperous-motos-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
     PRODUCTS: "products",
     STOCKS: "stocks",
     SYNC_QUEUE: "sync_queue",
     SALES: "sales",
+    SYNC_FAILED: "sync_failed",
 };
 
 function openDatabase() {
@@ -42,6 +43,15 @@ function openDatabase() {
 
             if (!db.objectStoreNames.contains(STORES.SALES)) {
                 db.createObjectStore(STORES.SALES, { keyPath: "id" });
+            }
+
+            // Actions hors-ligne qui ont ÉCHOUÉ au rejeu (refus serveur) : archivées
+            // ici au lieu d'être perdues, pour information / résolution manuelle.
+            if (!db.objectStoreNames.contains(STORES.SYNC_FAILED)) {
+                db.createObjectStore(STORES.SYNC_FAILED, {
+                    keyPath: "id",
+                    autoIncrement: true,
+                });
             }
         };
 
@@ -171,6 +181,23 @@ export async function removeSyncQueueItem(id) {
     });
 }
 
+// --- Actions hors-ligne échouées (archivées, non perdues) ---
+export async function addFailedSyncItem(item) {
+    return withStore(STORES.SYNC_FAILED, "readwrite", (store) => {
+        store.add(item);
+    });
+}
+
+export async function getFailedSyncItems() {
+    return getAllItems(STORES.SYNC_FAILED);
+}
+
+export async function removeFailedSyncItem(id) {
+    return withStore(STORES.SYNC_FAILED, "readwrite", (store) => {
+        store.delete(id);
+    });
+}
+
 // Expose helpful functions globally for pages that need to access IndexedDB
 if (typeof window !== "undefined") {
     window.Idb = window.Idb || {};
@@ -179,4 +206,6 @@ if (typeof window !== "undefined") {
     window.Idb.getSyncQueueItems = getSyncQueueItems;
     window.Idb.getSalesByDate = getSalesByDate;
     window.Idb.saveSales = saveSales;
+    window.Idb.getFailedSyncItems = getFailedSyncItems;
+    window.Idb.removeFailedSyncItem = removeFailedSyncItem;
 }

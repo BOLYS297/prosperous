@@ -29,4 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // sécurisés, génération d'URL, vraie IP client). Le conteneur app n'est
         // joignable que par Caddy, donc "*" est sûr ici.
         $middleware->trustProxies(at: '*');
+
+        // Fiabilise la resynchronisation hors-ligne : convertit le résultat des
+        // actions rejouées (en-tête X-Offline-Sync) en JSON succès/échec.
+        $middleware->appendToGroup('web', \App\Http\Middleware\HandleOfflineSync::class);
     })->create();
