@@ -235,8 +235,10 @@
                 // Somme de TOUS les lots de la boutique (le système FIFO crée plusieurs lignes stock)
                 $quantiteStock = $produit->stocks->sum('quantite');
                 $enStock = $quantiteStock > 0;
+                // Prix grossiste du lot actif (le plus ancien en stock) — utilisé par le point de vente
+                $lotActifGrossiste = optional($produit->stocks->where('quantite', '>', 0)->sortBy('created_at')->first())->prix_vente_grossiste_unitaire;
             @endphp
-            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
+            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-grossiste-price="{{ $lotActifGrossiste ?? '' }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
                 <div class="flex-1">
                     @if($produit->image)
                         <img src="{{ asset('storage/' . $produit->image) }}" alt="{{ $produit->nom }}" class="object-cover rounded-2xl mb-4 w-50 h-40" style="max-height: 12rem;">
@@ -436,24 +438,35 @@
 
             if (saleType === 'grossiste') {
                 const grossiste = findGrossiste(selectedGrossisteId);
+                const lotGrossistePrice = parseFloat(card.dataset.grossistePrice);
+                const hasLotGrossiste = !isNaN(lotGrossistePrice) && lotGrossistePrice > 0;
+
                 if (!grossiste) {
                     submitBtn.disabled = true;
                     grossisteNote.textContent = 'Sélectionnez un grossiste pour utiliser le tarif grossiste.';
                     grossisteNote.classList.remove('hidden');
                     grossisteNote.classList.add('text-rose-600');
-                } else if (grossiste.prix[productId] === undefined) {
-                    unitPrice = 0;
-                    submitBtn.disabled = true;
-                    grossisteNote.textContent = 'Aucun prix grossiste défini pour ce produit.';
-                    grossisteNote.classList.remove('hidden');
-                    grossisteNote.classList.add('text-rose-600');
-                } else {
+                } else if (grossiste.prix[productId] !== undefined) {
+                    // 1) Tarif SPÉCIFIQUE de ce grossiste (override) -> prioritaire
                     unitPrice = parseFloat(grossiste.prix[productId]);
                     submitBtn.disabled = false;
-                    grossisteNote.textContent = 'Prix grossiste : ' + grossiste.nom + ' (' + grossiste.code + ')';
-                    grossisteNote.classList.remove('hidden');
-                    grossisteNote.classList.remove('text-rose-600');
+                    grossisteNote.textContent = 'Tarif grossiste : ' + grossiste.nom + ' (' + grossiste.code + ')';
+                    grossisteNote.classList.remove('hidden', 'text-rose-600');
                     grossisteNote.classList.add('text-slate-500');
+                } else if (hasLotGrossiste) {
+                    // 2) Prix grossiste du LOT (défini à l'achat)
+                    unitPrice = lotGrossistePrice;
+                    submitBtn.disabled = false;
+                    grossisteNote.textContent = 'Prix grossiste du lot en cours';
+                    grossisteNote.classList.remove('hidden', 'text-rose-600');
+                    grossisteNote.classList.add('text-slate-500');
+                } else {
+                    // 3) Aucun prix grossiste disponible
+                    unitPrice = 0;
+                    submitBtn.disabled = true;
+                    grossisteNote.textContent = 'Aucun prix grossiste (ni tarif grossiste, ni prix défini à l\'achat).';
+                    grossisteNote.classList.remove('hidden');
+                    grossisteNote.classList.add('text-rose-600');
                 }
             } else {
                 submitBtn.disabled = !(card.dataset.inStock === '1');
