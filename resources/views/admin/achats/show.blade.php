@@ -43,7 +43,15 @@
     <div class="glass-panel p-6 rounded-2xl flex flex-col justify-center items-center text-center {{ $achat->statut === 'paye' ? 'border-b-4 border-emerald-500' : 'border-b-4 border-rose-500' }}">
         <div class="text-sm text-slate-500 mb-1">Statut Paiement</div>
         @if($achat->statut === 'paye')
-            <div class="font-bold text-2xl text-emerald-600 flex items-center"><i class="ri-check-double-line mr-2"></i> PAYÉ</div>
+            @if(isset($validation) && $validation->status === 'pending')
+                <div class="font-bold text-2xl text-amber-600 flex items-center"><i class="ri-hourglass-line mr-2"></i> À VALIDER</div>
+                <div class="text-xs text-slate-500 mt-1">En attente de validation par la boutique avant débit</div>
+            @elseif(isset($validation) && $validation->status === 'rejected')
+                <div class="font-bold text-2xl text-rose-600 flex items-center"><i class="ri-close-circle-line mr-2"></i> CONTESTÉ</div>
+                <div class="text-xs text-slate-500 mt-1">Paiement contesté par la boutique — aucun débit appliqué</div>
+            @else
+                <div class="font-bold text-2xl text-emerald-600 flex items-center"><i class="ri-check-double-line mr-2"></i> PAYÉ</div>
+            @endif
         @else
             <div class="font-bold text-2xl text-rose-600 flex items-center"><i class="ri-time-line mr-2"></i> DETTE</div>
         @endif
