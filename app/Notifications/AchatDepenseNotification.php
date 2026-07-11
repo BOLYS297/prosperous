@@ -26,7 +26,7 @@ class AchatDepenseNotification extends Notification implements ShouldQueue
     public function toDatabase($notifiable)
     {
         return [
-            'message' => "Un montant de " . number_format($this->montant, 0, ',', ' ') . " FCFA a été imputé de votre solde pour une dépense admin.",
+            'message' => "Un montant de " . money_format_app($this->montant) . " a été imputé de votre solde pour une dépense admin.",
             'montant' => $this->montant,
         ];
     }
@@ -35,7 +35,7 @@ class AchatDepenseNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Dépense administrative')
-            ->line("Un montant de " . number_format($this->montant, 0, ',', ' ') . " FCFA a été imputé de votre solde pour une dépense admin.");
+            ->line("Un montant de " . money_format_app($this->montant) . " a été imputé de votre solde pour une dépense admin.");
     }
 
     public function toArray($notifiable)

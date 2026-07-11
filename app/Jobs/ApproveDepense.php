@@ -40,7 +40,7 @@ class ApproveDepense implements ShouldQueue
         if ($this->depense->user) {
             Notification::send($this->depense->user, new AdminValidationNotification(
                 'Dépense validée',
-                "Votre dépense de " . number_format($this->depense->montant, 0, ',', ' ') . " FCFA a été validée par l'administrateur.",
+                "Votre dépense de " . money_format_app($this->depense->montant) . " a été validée par l'administrateur.",
                 'Voir la dépense',
                 route('admin.rapports.index')
             ));

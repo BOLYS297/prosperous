@@ -41,7 +41,7 @@
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{{ $validation->source_label }}</span>
-                                    <span class="text-lg font-black text-rose-600">{{ number_format($validation->amount, 0, ',', ' ') }} FCFA</span>
+                                    <span class="text-lg font-black text-rose-600">{{ number_format($validation->amount, 0, ',', ' ') }} {{ param("currency") }}</span>
                                 </div>
                                 <p class="text-sm text-slate-700 mt-1">{{ $validation->motif }}</p>
                                 <p class="text-xs text-slate-400 mt-1">Par {{ $validation->initiator->nom_utilisateur ?? 'Administrateur' }} · {{ $validation->created_at->diffForHumans() }}</p>
@@ -49,7 +49,7 @@
                             <div class="flex items-center gap-2 shrink-0">
                                 <form action="{{ route('boutiquier.validations.confirmer', $validation) }}" method="POST" data-offline-sync="true">
                                     @csrf
-                                    <button type="submit" onclick="return confirm('Valider ce débit de {{ number_format($validation->amount, 0, ',', ' ') }} FCFA ? Votre solde sera débité.')" class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center">
+                                    <button type="submit" onclick="return confirm('Valider ce débit de {{ number_format($validation->amount, 0, ',', ' ') }} {{ param("currency") }} ? Votre solde sera débité.')" class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center">
                                         <i class="ri-check-line mr-1"></i> Valider
                                     </button>
                                 </form>

@@ -77,7 +77,7 @@ class DepenseController extends Controller
 
         Notification::send($users, new \App\Notifications\PendingActionNotification(
             'Débit à valider',
-            'Une dépense administrative de ' . number_format($montant, 0, ',', ' ') . ' FCFA attend votre validation avant débit de votre solde.',
+            'Une dépense administrative de ' . money_format_app($montant) . ' attend votre validation avant débit de votre solde.',
             'Valider',
             route('boutiquier.dashboard'),
             [
