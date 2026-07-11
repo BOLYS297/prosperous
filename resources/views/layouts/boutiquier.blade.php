@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Prosperous Motos">
     <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
-    <link rel="apple-touch-icon" sizes="192x192" href="{{ asset('logo.jpg') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ param_image('logo_path', 'logo.jpg') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Caisse - Point de Vente</title>
-    <link rel="icon" href="{{ asset('logo.jpg') }}" type="image/jpeg">
+    <link rel="icon" href="{{ param_image('logo_path', 'logo.jpg') }}" type="image/jpeg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,7 +47,7 @@
             color: #1e40af;
         }
         #bg-image{
-            background-image: url('{{ asset('magasinier-bg.png') }}');
+            background-image: url('{{ param_image('banner_path', 'magasinier-bg.png') }}');
             background-size: cover;
             background-position: center;
             opacity: 80%;
@@ -65,7 +65,7 @@
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-50 w-64 glass-panel transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col justify-between overflow-y-auto overscroll-y-contain">
             <div>
                 <div class="flex items-center justify-between h-40 border-b border-white/40 px-4 relative">
-                    <img src="{{ asset('logo.jpg') }}" alt="Logo" class="h-30 w-auto object-contain">
+                    <img src="{{ param_image('logo_path', 'logo.jpg') }}" alt="Logo" class="h-30 w-auto object-contain">
 
                     <button @click="sidebarOpen = false" class="lg:hidden text-slate-400 hover:text-rose-500 transition-colors">
                         <i class="ri-close-line text-2xl"></i>

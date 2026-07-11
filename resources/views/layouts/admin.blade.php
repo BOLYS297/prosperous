@@ -8,10 +8,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Prosperous Motos">
     <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
-    <link rel="apple-touch-icon" sizes="192x192" href="{{ asset('logo.jpg') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ param_image('logo_path', 'logo.jpg') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Administration - Plateforme de Gestion</title>
-    <link rel="icon" href="{{ asset('logo.jpg') }}" type="image/jpeg">
+    <link rel="icon" href="{{ param_image('logo_path', 'logo.jpg') }}" type="image/jpeg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,7 +47,7 @@
             color: #1e40af;
         }
         #bg-image{
-            background-image: url('{{ asset('magasinier-bg.png') }}');
+            background-image: url('{{ param_image('banner_path', 'magasinier-bg.png') }}');
             background-size: cover;
             background-position: center;
             opacity: 80%;
@@ -65,7 +65,7 @@
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-50 w-64 glass-panel transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col justify-between overflow-y-auto">
             <div>
                 <div class="flex items-center justify-center h-40 border-b border-white/40 px-4 relative">
-                    <img src="{{ asset('logo.jpg') }}" alt="Logo" class="h-30 w-auto object-contain">
+                    <img src="{{ param_image('logo_path', 'logo.jpg') }}" alt="Logo" class="h-30 w-auto object-contain">
 
                     <!-- Bouton pour fermer (Mobile) -->
                     <button @click="sidebarOpen = false" class="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors">
@@ -122,6 +122,11 @@
                     <a href="{{ route('admin.logs.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.logs.*') ? 'active' : '' }}">
                         <i class="ri-history-line text-xl mr-3"></i>
                         <span>Historique & Logs</span>
+                    </a>
+
+                    <a href="{{ route('admin.parametres.edit') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.parametres.*') ? 'active' : '' }}">
+                        <i class="ri-settings-3-line text-xl mr-3"></i>
+                        <span>Paramètres</span>
                     </a>
                 </nav>
             </div>

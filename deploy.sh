@@ -37,8 +37,11 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-echo "==> 6/7  Migrations + mise en cache de la configuration"
+echo "==> 6/7  Migrations + lien de stockage + mise en cache de la configuration"
 docker compose exec -T app php artisan migrate --force
+# Lien public/storage -> storage/app/public (images logo/bannière téléversées).
+# Recréé à chaque déploiement car public/ n'est pas un volume persistant.
+docker compose exec -T app php artisan storage:link || true
 docker compose exec -T app php artisan config:cache
 docker compose exec -T app php artisan route:cache
 docker compose exec -T app php artisan view:cache
