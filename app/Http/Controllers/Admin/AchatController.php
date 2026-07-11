@@ -37,7 +37,13 @@ class AchatController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.achats.index', compact('achats', 'q'));
+        // État de validation du paiement comptant par la boutique, par achat.
+        $achatValidations = \App\Models\DebitValidation::where('source_type', 'achat')
+            ->whereIn('source_id', $achats->pluck('id'))
+            ->get()
+            ->keyBy('source_id');
+
+        return view('admin.achats.index', compact('achats', 'q', 'achatValidations'));
     }
 
     public function create()
@@ -263,7 +269,13 @@ class AchatController extends Controller
     public function show(\App\Models\Achat $achat)
     {
         $achat->load(['fournisseur', 'boutique', 'lignes.produit', 'recharge.lignes']);
-        return view('admin.achats.show', compact('achat'));
+
+        $validation = \App\Models\DebitValidation::where('source_type', 'achat')
+            ->where('source_id', $achat->id)
+            ->latest()
+            ->first();
+
+        return view('admin.achats.show', compact('achat', 'validation'));
     }
 
     public function edit(\App\Models\Achat $achat)
