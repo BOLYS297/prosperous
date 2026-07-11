@@ -73,10 +73,21 @@
                             {{ number_format($achat->montant_total, 0, ',', ' ') }} {{ param("currency") }}
                         </td>
                         <td class="p-4">
+                            @php $validation = $achatValidations[$achat->id] ?? null; @endphp
                             @if($achat->statut === 'paye')
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
-                                    <i class="ri-check-line mr-1"></i> Payé
-                                </span>
+                                @if($validation && $validation->status === 'pending')
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700" title="Le boutiquier doit valider le paiement avant débit de son solde">
+                                        <i class="ri-hourglass-line mr-1"></i> Paiement à valider
+                                    </span>
+                                @elseif($validation && $validation->status === 'rejected')
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700" title="Paiement contesté par la boutique — aucun débit appliqué">
+                                        <i class="ri-close-circle-line mr-1"></i> Paiement contesté
+                                    </span>
+                                @else
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                                        <i class="ri-check-line mr-1"></i> Payé
+                                    </span>
+                                @endif
                             @else
                                 <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
                                     <i class="ri-time-line mr-1"></i> Dette
