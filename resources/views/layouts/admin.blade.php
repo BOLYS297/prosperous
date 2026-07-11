@@ -104,6 +104,11 @@
                         <span>Achats & Stocks</span>
                     </a>
 
+                    <a href="{{ route('admin.boutiques.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.boutiques.*') ? 'active' : '' }}">
+                        <i class="ri-store-3-line text-xl mr-3"></i>
+                        <span>Boutiques & Trésorerie</span>
+                    </a>
+
                     <a href="{{ route('admin.profile.edit') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}">
                         <i class="ri-user-line text-xl mr-3"></i>
                         <span>Mon profil</span>
