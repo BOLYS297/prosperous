@@ -16,7 +16,7 @@
                     <th class="p-4 text-left font-semibold">Type</th>
                     <th class="p-4 text-left font-semibold">Heure événement</th>
                     <th class="p-4 text-left font-semibold">Retard</th>
-                    <th class="p-4 text-left font-semibold">Montant (FCFA)</th>
+                    <th class="p-4 text-left font-semibold">Montant ({{ param("currency") }})</th>
                     <th class="p-4 text-center font-semibold">Actions</th>
                 </tr>
             </thead>

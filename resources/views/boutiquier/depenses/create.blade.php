@@ -119,11 +119,11 @@
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Montant (FCFA) <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Montant ({{ param("currency") }}) <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <input type="number" step="0.01" name="montant" value="{{ old('montant', request()->query('montant')) }}" class="w-full pl-4 pr-16 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 5000" :required="type === 'depense'">
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
-                            FCFA
+                            {{ param("currency") }}
                         </div>
                     </div>
                 </div>

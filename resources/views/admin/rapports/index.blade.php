@@ -62,7 +62,7 @@
         <div class="flex justify-between items-start mb-4">
             <div>
                 <p class="text-sm font-medium text-slate-500">Ventes Totales</p>
-                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalVentes, 0, ',', ' ') }} FCFA</h3>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalVentes, 0, ',', ' ') }} {{ param("currency") }}</h3>
             </div>
             <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
                 <i class="ri-shopping-cart-2-line text-2xl"></i>
@@ -74,7 +74,7 @@
         <div class="flex justify-between items-start mb-4">
             <div>
                 <p class="text-sm font-medium text-slate-500">Dépenses validées</p>
-                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalDepenses, 0, ',', ' ') }} FCFA</h3>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalDepenses, 0, ',', ' ') }} {{ param("currency") }}</h3>
             </div>
             <div class="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
                 <i class="ri-money-dollar-circle-line text-2xl"></i>
@@ -86,7 +86,7 @@
         <div class="flex justify-between items-start mb-4">
             <div>
                 <p class="text-sm font-medium text-slate-500">Dépenses en attente</p>
-                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalDepensesPending, 0, ',', ' ') }} FCFA</h3>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalDepensesPending, 0, ',', ' ') }} {{ param("currency") }}</h3>
             </div>
             <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
                 <i class="ri-time-line text-2xl"></i>
@@ -98,7 +98,7 @@
         <div class="flex justify-between items-start mb-4">
             <div>
                 <p class="text-sm font-medium text-slate-500">Achats (Stock)</p>
-                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalAchats, 0, ',', ' ') }} FCFA</h3>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ number_format($totalAchats, 0, ',', ' ') }} {{ param("currency") }}</h3>
             </div>
             <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
                 <i class="ri-truck-line text-2xl"></i>
@@ -135,7 +135,7 @@
             <div>
                 <p class="text-sm font-medium text-slate-500">Bénéfice Net (Flux)</p>
                 <h3 class="text-2xl font-black {{ $cashFlow >= 0 ? 'text-emerald-600' : 'text-red-600' }} mt-1">
-                    {{ $cashFlow >= 0 ? '+' : '' }}{{ number_format($cashFlow, 0, ',', ' ') }} FCFA
+                    {{ $cashFlow >= 0 ? '+' : '' }}{{ number_format($cashFlow, 0, ',', ' ') }} {{ param("currency") }}
                 </h3>
             </div>
             <div class="w-12 h-12 rounded-xl {{ $cashFlow >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600' }} flex items-center justify-center">
@@ -159,7 +159,7 @@
                 <div>
                     <div class="flex justify-between text-sm font-bold text-slate-700 mb-1">
                         <span>{{ $boutique->nom }}</span>
-                        <span>{{ number_format($boutique->ventes_sum_montant_total, 0, ',', ' ') }} FCFA</span>
+                        <span>{{ number_format($boutique->ventes_sum_montant_total, 0, ',', ' ') }} {{ param("currency") }}</span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-2.5">
                         <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ $pourcentage }}%"></div>
@@ -222,7 +222,7 @@
                         <td class="py-3 font-medium text-slate-700">{{ $boutique->nom }}</td>
                         <td class="py-3 text-right font-bold text-slate-800">{{ number_format($boutique->stock_total_produits ?? 0, 0, ',', ' ') }}</td>
                         <td class="py-3 text-right font-bold text-slate-800">{{ number_format($boutique->stock_total_quantite ?? 0, 0, ',', ' ') }}</td>
-                        <td class="py-3 text-right font-bold text-slate-800">{{ number_format($boutique->stock_total_capital ?? 0, 0, ',', ' ') }} FCFA</td>
+                        <td class="py-3 text-right font-bold text-slate-800">{{ number_format($boutique->stock_total_capital ?? 0, 0, ',', ' ') }} {{ param("currency") }}</td>
                     </tr>
                 @empty
                     <tr>
@@ -257,7 +257,7 @@
                         <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                             <td class="py-3 font-medium text-slate-700">{{ \Carbon\Carbon::parse($jour)->translatedFormat('d/m/Y') }}</td>
                             <td class="py-3 font-medium text-slate-700">{{ $venteJournaliere->boutique ? $venteJournaliere->boutique->nom : 'Boutique inconnue' }}</td>
-                            <td class="py-3 text-right font-bold text-slate-800">{{ number_format($venteJournaliere->total_ventes, 0, ',', ' ') }} FCFA</td>
+                            <td class="py-3 text-right font-bold text-slate-800">{{ number_format($venteJournaliere->total_ventes, 0, ',', ' ') }} {{ param("currency") }}</td>
                         </tr>
                     @endforeach
                 @empty
@@ -297,7 +297,7 @@
                             <tbody x-data="{ open: false }" class="border-b border-slate-100 hover:bg-slate-50/50 align-top">
                                 <tr>
                                     <td class="py-3 font-medium text-slate-700">{{ $depense->boutique->nom ?? 'Magasinier' }}</td>
-                                    <td class="py-3 font-bold text-slate-800">{{ number_format($depense->montant, 0, ',', ' ') }} FCFA</td>
+                                    <td class="py-3 font-bold text-slate-800">{{ number_format($depense->montant, 0, ',', ' ') }} {{ param("currency") }}</td>
                                     <td class="py-3 text-slate-500">{{ $depense->user->nom_utilisateur ?? '—' }}</td>
                                     <td class="py-3">
                                         <div class="flex flex-col gap-2">
@@ -322,7 +322,7 @@
                                             </div>
                                             <div>
                                                 <p class="font-semibold text-slate-700">Montant</p>
-                                                <p>{{ number_format($depense->montant, 0, ',', ' ') }} FCFA</p>
+                                                <p>{{ number_format($depense->montant, 0, ',', ' ') }} {{ param("currency") }}</p>
                                             </div>
                                             <div>
                                                 <p class="font-semibold text-slate-700">Description</p>

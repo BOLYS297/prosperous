@@ -100,14 +100,14 @@
             <p class="text-sm text-slate-500">Définissez le montant à déduire par heure de retard sur le salaire des employés.</p>
         </div>
         <span class="inline-flex items-center px-3 py-2 rounded-full bg-slate-100 text-slate-700 text-sm font-medium">
-            Actuellement : <strong class="ml-2">{{ number_format($deductionHourlyAmount, 0, ',', ' ') }} FCFA / heure</strong>
+            Actuellement : <strong class="ml-2">{{ number_format($deductionHourlyAmount, 0, ',', ' ') }} {{ param("currency") }} / heure</strong>
         </span>
     </div>
 
     <form action="{{ route('admin.dashboard.deduction.update') }}" method="POST" class="grid gap-4 md:grid-cols-2 items-end">
         @csrf
         <div class="md:col-span-1">
-            <label class="block text-sm font-medium text-slate-700 mb-2" for="hourly_retard_amount">Montant par heure de retard (FCFA)</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2" for="hourly_retard_amount">Montant par heure de retard ({{ param("currency") }})</label>
             <input id="hourly_retard_amount" name="hourly_retard_amount" type="number" min="0" value="{{ old('hourly_retard_amount', $deductionHourlyAmount) }}" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none" required>
             @error('hourly_retard_amount')
                 <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
@@ -151,7 +151,7 @@
                         <th class="p-4 text-left font-semibold">Type</th>
                         <th class="p-4 text-left font-semibold">Heure événement</th>
                         <th class="p-4 text-left font-semibold">Retard</th>
-                        <th class="p-4 text-left font-semibold">Montant (FCFA)</th>
+                        <th class="p-4 text-left font-semibold">Montant ({{ param("currency") }})</th>
                         <th class="p-4 text-center font-semibold">Actions</th>
                     </tr>
                 </thead>
@@ -223,7 +223,7 @@
                     <th class="p-4 text-left font-semibold">Type</th>
                     <th class="p-4 text-left font-semibold">Heure événement</th>
                     <th class="p-4 text-left font-semibold">Retard</th>
-                    <th class="p-4 text-left font-semibold">Montant (FCFA)</th>
+                    <th class="p-4 text-left font-semibold">Montant ({{ param("currency") }})</th>
                     <th class="p-4 text-left font-semibold">Approuvé par</th>
                     <th class="p-4 text-left font-semibold">Date approbation</th>
                     <th class="p-4 text-center font-semibold">Action</th>
@@ -324,7 +324,7 @@
                                 {{ number_format($product->total_quantity, 0, ',', ' ') }}
                             </td>
                             <td class="p-4 text-right font-semibold text-slate-700">
-                                {{ number_format($product->total_revenue, 0, ',', ' ') }} FCFA
+                                {{ number_format($product->total_revenue, 0, ',', ' ') }} {{ param("currency") }}
                             </td>
                         </tr>
                     @endforeach
@@ -345,7 +345,7 @@
             <i class="ri-wallet-3-fill text-6xl text-blue-600"></i>
         </div>
         <h3 class="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider">Solde Total Entreprise</h3>
-        <p class="text-3xl font-bold text-slate-800">{{ number_format($entrepriseSolde, 0, ',', ' ') }} <span class="text-xl text-slate-500 font-normal">FCFA</span></p>
+        <p class="text-3xl font-bold text-slate-800">{{ number_format($entrepriseSolde, 0, ',', ' ') }} <span class="text-xl text-slate-500 font-normal">{{ param("currency") }}</span></p>
         <div class="mt-4 flex items-center text-sm text-slate-500 font-medium">
             <i class="ri-arrow-up-line mr-1"></i> Total disponible sur toutes les boutiques
         </div>
@@ -357,7 +357,7 @@
             <i class="ri-pie-chart-2-fill text-6xl text-emerald-600"></i>
         </div>
         <h3 class="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider">Bénéfice Net</h3>
-        <p class="text-3xl font-bold text-slate-800">{{ $profitNet >= 0 ? '+' : '' }}{{ number_format($profitNet, 0, ',', ' ') }} <span class="text-xl text-slate-500 font-normal">FCFA</span></p>
+        <p class="text-3xl font-bold text-slate-800">{{ $profitNet >= 0 ? '+' : '' }}{{ number_format($profitNet, 0, ',', ' ') }} <span class="text-xl text-slate-500 font-normal">{{ param("currency") }}</span></p>
         <div class="mt-4 flex items-center text-sm {{ $profitNet >= 0 ? 'text-emerald-500' : 'text-rose-500' }} font-medium">
             <i class="ri-arrow-{{ $profitNet >= 0 ? 'up' : 'down' }}-line mr-1"></i>
             {{ $profitNet >= 0 ? 'Profit estimé' : 'Perte estimée' }}
@@ -370,7 +370,7 @@
             <i class="ri-store-2-fill text-6xl text-indigo-600"></i>
         </div>
         <h3 class="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider">{{ $topBoutique ? $topBoutique->nom : 'Boutique principale' }}</h3>
-        <p class="text-3xl font-bold text-slate-800">{{ $topBoutique ? number_format($topBoutique->solde, 0, ',', ' ') : '0' }} <span class="text-xl text-slate-500 font-normal">FCFA</span></p>
+        <p class="text-3xl font-bold text-slate-800">{{ $topBoutique ? number_format($topBoutique->solde, 0, ',', ' ') : '0' }} <span class="text-xl text-slate-500 font-normal">{{ param("currency") }}</span></p>
         <div class="mt-4 flex items-center text-sm text-slate-500 font-medium">
             <i class="ri-arrow-up-line mr-1"></i> Meilleure situation financière
         </div>
@@ -382,7 +382,7 @@
             <i class="ri-store-3-fill text-6xl text-purple-600"></i>
         </div>
         <h3 class="text-slate-500 font-medium text-sm mb-1 uppercase tracking-wider">{{ $secondBoutique ? $secondBoutique->nom : 'Autre boutique' }}</h3>
-        <p class="text-3xl font-bold text-slate-800">{{ $secondBoutique ? number_format($secondBoutique->solde, 0, ',', ' ') : '0' }} <span class="text-xl text-slate-500 font-normal">FCFA</span></p>
+        <p class="text-3xl font-bold text-slate-800">{{ $secondBoutique ? number_format($secondBoutique->solde, 0, ',', ' ') : '0' }} <span class="text-xl text-slate-500 font-normal">{{ param("currency") }}</span></p>
         <div class="mt-4 flex items-center text-sm text-slate-500 font-medium">
             <i class="ri-arrow-up-line mr-1"></i> Deuxième meilleure boutique
         </div>
@@ -401,7 +401,7 @@
                 </span>
             @endif
         </div>
-        <p class="text-3xl font-bold text-rose-600">{{ number_format($dettesFournisseurs, 0, ',', ' ') }} <span class="text-xl font-normal">FCFA</span></p>
+        <p class="text-3xl font-bold text-rose-600">{{ number_format($dettesFournisseurs, 0, ',', ' ') }} <span class="text-xl font-normal">{{ param("currency") }}</span></p>
         <div class="mt-4 flex items-center text-sm text-slate-500 font-medium">
             <i class="ri-time-line mr-1"></i> Montant restant à régler
         </div>

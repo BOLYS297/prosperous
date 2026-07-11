@@ -48,12 +48,12 @@
                     <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                         <td class="p-4 font-medium text-slate-800">{{ $payroll->user->nom_utilisateur }}</td>
                         <td class="p-4">{{ ucfirst($payroll->user->role) }}</td>
-                        <td class="p-4">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} FCFA</td>
-                        <td class="p-4">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} FCFA</td>
-                        <td class="p-4">{{ number_format($payroll->deductions, 0, ',', ' ') }} FCFA</td>
-                        <td class="p-4">{{ number_format($payroll->carryover_previous, 0, ',', ' ') }} FCFA</td>
-                        <td class="p-4 font-semibold text-slate-900">{{ number_format($payroll->net_salary, 0, ',', ' ') }} FCFA</td>
-                        <td class="p-4">{{ number_format($payroll->carryover_next, 0, ',', ' ') }} FCFA</td>
+                        <td class="p-4">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">{{ number_format($payroll->deductions, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">{{ number_format($payroll->carryover_previous, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4 font-semibold text-slate-900">{{ number_format($payroll->net_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">{{ number_format($payroll->carryover_next, 0, ',', ' ') }} {{ param("currency") }}</td>
                     </tr>
                 @empty
                     <tr>
