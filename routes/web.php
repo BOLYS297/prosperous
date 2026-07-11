@@ -58,6 +58,10 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::get('depenses/create', [\App\Http\Controllers\Admin\DepenseController::class, 'create'])->name('depenses.create');
         Route::post('depenses', [\App\Http\Controllers\Admin\DepenseController::class, 'store'])->name('depenses.store');
 
+        // Boutiques / Trésorerie : approvisionnement du solde
+        Route::get('boutiques', [\App\Http\Controllers\Admin\BoutiqueController::class, 'index'])->name('boutiques.index');
+        Route::post('boutiques/{boutique}/crediter', [\App\Http\Controllers\Admin\BoutiqueController::class, 'crediter'])->name('boutiques.crediter');
+
         // Tranches horaires de connexion
         Route::get('horaires', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'index'])->name('horaires.index');
         Route::post('horaires', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'store'])->name('horaires.store');
