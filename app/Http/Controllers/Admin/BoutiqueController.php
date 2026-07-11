@@ -22,6 +22,32 @@ class BoutiqueController extends Controller
     }
 
     /**
+     * Renommer une boutique / changer son type (depuis le module Paramètres).
+     */
+    public function update(Request $request, Boutique $boutique)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'type' => 'required|in:boutique,magasin',
+        ]);
+
+        $ancienNom = $boutique->nom;
+
+        $boutique->update([
+            'nom' => $validated['nom'],
+            'type' => $validated['type'],
+        ]);
+
+        LogActivite::create([
+            'user_id' => Auth::id(),
+            'action' => 'admin.boutiques.update',
+            'description' => "Boutique renommée : « {$ancienNom} » → « {$boutique->nom} » (type : {$boutique->type}).",
+        ]);
+
+        return back()->with('success', 'Point de vente « ' . $boutique->nom . ' » mis à jour.');
+    }
+
+    /**
      * Enregistrer un versement de cash (approvisionnement) : augmente le solde
      * de la boutique et notifie les boutiquiers concernés.
      */

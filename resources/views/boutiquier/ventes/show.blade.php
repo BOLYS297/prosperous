@@ -28,9 +28,17 @@
 
 <div class="receipt bg-white shadow rounded-2xl p-5 mx-auto">
     <div class="text-center mb-4">
-        <div class="font-bold text-lg text-slate-900">Prosperous Motos</div>
+        <div class="font-bold text-lg text-slate-900">{{ param('company_name') }}</div>
         <div class="text-xs text-slate-500">Ticket de caisse</div>
-        <div class="text-xs text-slate-500">Immatriculation : P019017879563S</div>
+        @if(param('company_immatriculation'))
+            <div class="text-xs text-slate-500">Immatriculation : {{ param('company_immatriculation') }}</div>
+        @endif
+        @if(param('company_address'))
+            <div class="text-xs text-slate-500">{{ param('company_address') }}</div>
+        @endif
+        @if(param('company_phone'))
+            <div class="text-xs text-slate-500">Tél : {{ param('company_phone') }}</div>
+        @endif
     </div>
 
     <div class="text-xs text-slate-600 mb-4">
@@ -48,7 +56,7 @@
                     @if($ligne->produit && $ligne->produit->reference)
                         <div class="text-slate-600 font-mono text-xs bg-slate-100 inline-block px-2 py-1 rounded mt-1">{{ $ligne->produit->reference }}</div>
                     @endif
-                    <div class="text-slate-500 mt-1">{{ $ligne->quantite }} x {{ number_format($ligne->prix_unitaire, 0, ',', ' ') }} FCFA</div>
+                    <div class="text-slate-500 mt-1">{{ $ligne->quantite }} x {{ number_format($ligne->prix_unitaire, 0, ',', ' ') }} {{ param('currency') }}</div>
                 </div>
                 <div class="text-right font-bold">
                     {{ number_format($ligne->quantite * $ligne->prix_unitaire, 0, ',', ' ') }}
@@ -60,12 +68,12 @@
     <div class="border-t border-slate-200 mt-4 pt-3 text-xs text-slate-600">
         <div class="flex justify-between mb-1">
             <span>Total</span>
-            <span class="font-bold text-slate-900">{{ number_format($vente->montant_total, 0, ',', ' ') }} FCFA</span>
+            <span class="font-bold text-slate-900">{{ number_format($vente->montant_total, 0, ',', ' ') }} {{ param('currency') }}</span>
         </div>
     </div>
 
     <div class="text-center text-[10px] text-slate-500 mt-5">
-        Merci de votre visite !
+        {{ param('ticket_footer', 'Merci de votre visite !') }}
     </div>
 </div>
 

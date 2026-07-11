@@ -61,6 +61,11 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         // Boutiques / Trésorerie : approvisionnement du solde
         Route::get('boutiques', [\App\Http\Controllers\Admin\BoutiqueController::class, 'index'])->name('boutiques.index');
         Route::post('boutiques/{boutique}/crediter', [\App\Http\Controllers\Admin\BoutiqueController::class, 'crediter'])->name('boutiques.crediter');
+        Route::put('boutiques/{boutique}', [\App\Http\Controllers\Admin\BoutiqueController::class, 'update'])->name('boutiques.update');
+
+        // Paramètres de l'entreprise (nom, immatriculation, devise, logo, bannière...)
+        Route::get('parametres', [\App\Http\Controllers\Admin\SettingsController::class, 'edit'])->name('parametres.edit');
+        Route::put('parametres', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('parametres.update');
 
         // Tranches horaires de connexion
         Route::get('horaires', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'index'])->name('horaires.index');
