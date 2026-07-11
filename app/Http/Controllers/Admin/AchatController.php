@@ -147,27 +147,25 @@ class AchatController extends Controller
                 }
             }
 
-            // Si c'est payé, on déduit le montant du solde de la boutique choisie et on notifie le boutiquier présent.
+            // Si c'est payé comptant, on ne débite PAS immédiatement : on crée une
+            // demande de validation. Le solde de la boutique ne sera débité (et le
+            // paiement enregistré) qu'après confirmation par le boutiquier, qui peut
+            // aussi contester le débit.
             $debitBoutique = $request->input('statut') === 'paye' ? \App\Models\Boutique::find($request->debit_boutique_id) : null;
 
             if ($request->statut === 'paye' && $debitBoutique) {
-                // Enregistrer le paiement mais ne pas décrémenter le solde immédiatement.
-                // La boutique choisie devra enregistrer une dépense et l'admin validera ensuite.
-                \App\Models\AchatPaiement::create([
-                    'achat_id' => $achat->id,
+                \App\Models\DebitValidation::create([
                     'boutique_id' => $debitBoutique->id,
-                    'user_id' => Auth::id(),
-                    'montant' => $montant_total,
-                    'description' => 'Proposition de paiement comptant pour l\'achat #' . $achat->id,
+                    'initiator_id' => Auth::id(),
+                    'amount' => $montant_total,
+                    'source_type' => 'achat',
+                    'source_id' => $achat->id,
+                    'motif' => "Paiement comptant de l'achat #{$achat->id}",
+                    'status' => 'pending',
                 ]);
 
-                // Notifier le(s) boutiquier(s) de la boutique débitée
-                $this->notifyBoutiquiers($debitBoutique, $montant_total, $achat);
-
-                // Notifier aussi les boutiquiers de la boutique destination
-                if ($destination) {
-                    $this->notifyBoutiquiers($destination, $montant_total, $achat);
-                }
+                // Notifier le(s) boutiquier(s) de la boutique débitée pour validation.
+                $this->notifyBoutiquiersForValidation($debitBoutique, $montant_total, "l'achat #{$achat->id}");
             } elseif ($request->statut === 'dette') {
                 // Aucun avis de débit de caisse ne doit être envoyé aux boutiques
                 // pour un achat admin à crédit.
@@ -228,32 +226,38 @@ class AchatController extends Controller
             }
         });
 
-        return redirect()->route('admin.achats.index')->with('success', 'Achat enregistré avec succès et la boutique de trésorerie a été débitée.');
+        $message = $request->statut === 'paye'
+            ? 'Achat enregistré. Le paiement comptant doit être validé par la boutique avant que son solde ne soit débité.'
+            : 'Achat enregistré avec succès.';
+
+        return redirect()->route('admin.achats.index')->with('success', $message);
     }
 
-    private function notifyBoutiquiers(\App\Models\Boutique $boutique, float $montant, \App\Models\Achat $achat)
+    /**
+     * Notifie tous les boutiquiers de la boutique qu'un débit attend leur
+     * validation. On ne filtre pas par shift : la demande ne doit pas être
+     * manquée par le boutiquier présent.
+     */
+    private function notifyBoutiquiersForValidation(\App\Models\Boutique $boutique, float $montant, string $objet): void
     {
-        $currentHour = (int) now()->format('H');
-        $shift = null;
+        $recipients = \App\Models\User::where('role', 'boutiquier')
+            ->where('boutique_id', $boutique->id)
+            ->get();
 
-        if ($currentHour >= 7 && $currentHour < 17) {
-            $shift = 'matin';
-        } elseif ($currentHour >= 17 && $currentHour < 23) {
-            $shift = 'soir';
+        if ($recipients->isEmpty()) {
+            return;
         }
 
-        $query = \App\Models\User::where('role', 'boutiquier')->where('boutique_id', $boutique->id);
-        $presentBoutiquiers = $shift ? (clone $query)->where('shift', $shift)->get() : collect();
-        $recipients = $presentBoutiquiers->isNotEmpty() ? $presentBoutiquiers : $query->get();
-
-        if ($recipients->isNotEmpty()) {
-            Notification::send($recipients, new AchatDepenseNotification(
-                $boutique->nom,
-                $montant,
-                $achat->id,
-                Auth::user()->nom_utilisateur ?? 'Administrateur'
-            ));
-        }
+        Notification::send($recipients, new \App\Notifications\PendingActionNotification(
+            'Débit à valider',
+            'Un paiement comptant de ' . number_format($montant, 0, ',', ' ') . ' FCFA pour ' . $objet . ' attend votre validation avant débit de votre solde.',
+            'Valider',
+            route('boutiquier.dashboard'),
+            [
+                'type' => 'debit_validation',
+                'montant' => $montant,
+            ]
+        ));
     }
 
     public function show(\App\Models\Achat $achat)

@@ -81,6 +81,14 @@ class DashboardController extends Controller
         $dettesCount = $dettes->count();
         $dettesRestantes = $dettes->sum(fn($achat) => $achat->reste_a_payer);
         $notifications = $user->unreadNotifications;
+
+        // Débits (achat comptant / dépense admin) en attente de validation par la boutique
+        $pendingValidations = \App\Models\DebitValidation::with('initiator')
+            ->where('boutique_id', $boutiqueId)
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
         $shiftWarning = null;
 
         $remainingSeconds = HoraireConnexion::getRemainingSecondsForUser($user);
@@ -93,7 +101,7 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('boutiquier.dashboard', compact('boutique', 'produits', 'grossistes', 'ventesAujourdhui', 'nbVentesJour', 'dettesCount', 'dettesRestantes', 'notifications', 'q', 'shiftWarning'));
+        return view('boutiquier.dashboard', compact('boutique', 'produits', 'grossistes', 'ventesAujourdhui', 'nbVentesJour', 'dettesCount', 'dettesRestantes', 'notifications', 'pendingValidations', 'q', 'shiftWarning'));
     }
 
     public function markNotificationAsRead($notificationId)

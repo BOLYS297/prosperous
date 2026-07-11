@@ -30,20 +30,31 @@ class DepenseController extends Controller
         $defaultIntitule = 'Dépense administrative';
         $defaultDescription = 'Dépense administrative enregistrée par l’administrateur.';
 
+        // On NE débite PAS immédiatement : la dépense reste "en attente de
+        // validation par la boutique". Le solde ne sera débité qu'après
+        // confirmation du boutiquier (qui peut aussi contester).
         DB::transaction(function () use ($request, $boutique, $defaultIntitule, $defaultDescription) {
-            Depense::create([
+            $depense = Depense::create([
                 'boutique_id' => $boutique->id,
                 'user_id' => Auth::id(),
                 'intitule' => $defaultIntitule,
                 'description' => $defaultDescription,
                 'montant' => $request->input('montant'),
                 'photo_justificatif' => null,
-                'statut' => 'approved',
+                'statut' => 'attente_boutique',
                 'admin_id' => Auth::id(),
-                'validated_at' => now(),
+                'validated_at' => null,
             ]);
 
-            $boutique->decrement('solde', $request->input('montant'));
+            \App\Models\DebitValidation::create([
+                'boutique_id' => $boutique->id,
+                'initiator_id' => Auth::id(),
+                'amount' => $request->input('montant'),
+                'source_type' => 'depense',
+                'source_id' => $depense->id,
+                'motif' => $defaultIntitule,
+                'status' => 'pending',
+            ]);
         });
 
         $this->notifyBoutiqueOfAdminExpense(
@@ -51,32 +62,28 @@ class DepenseController extends Controller
             $request->input('montant')
         );
 
-        return redirect()->route('admin.dashboard')->with('success', 'Dépense personnelle enregistrée et la boutique a été notifiée.');
+        return redirect()->route('admin.dashboard')->with('success', 'Dépense enregistrée. La boutique doit valider le débit avant que son solde ne soit débité.');
     }
 
     protected function notifyBoutiqueOfAdminExpense(Boutique $boutique, float $montant)
     {
         $users = \App\Models\User::where('role', 'boutiquier')
             ->where('boutique_id', $boutique->id)
-            ->whereNotNull('email')
-            ->where('email', '<>', '')
             ->get();
 
         if ($users->isEmpty()) {
             return;
         }
 
-        $reason = 'Dépense administrative imputée à la boutique.';
-        $actionUrl = route('boutiquier.depenses.create', [
-            'type' => 'perte',
-            'raison' => $reason,
-        ]);
-
-        Notification::send($users, new BoutiqueExpenseNotification(
-            'Nouvelle dépense administrative',
-            "Une dépense de " . number_format($montant, 0, ',', ' ') . " FCFA a été imputée à votre boutique.",
-            'Signaler une perte',
-            $actionUrl
+        Notification::send($users, new \App\Notifications\PendingActionNotification(
+            'Débit à valider',
+            'Une dépense administrative de ' . number_format($montant, 0, ',', ' ') . ' FCFA attend votre validation avant débit de votre solde.',
+            'Valider',
+            route('boutiquier.dashboard'),
+            [
+                'type' => 'debit_validation',
+                'montant' => $montant,
+            ]
         ));
     }
 }
