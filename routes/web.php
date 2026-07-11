@@ -46,6 +46,9 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::post('deductions/{deduction}/approve', [\App\Http\Controllers\Admin\AdminController::class, 'approveDeduction'])->name('deductions.approve');
         Route::post('deductions/{deduction}/reject', [\App\Http\Controllers\Admin\AdminController::class, 'rejectDeduction'])->name('deductions.reject');
 
+        Route::post('notifications/{notification}/read', [\App\Http\Controllers\Admin\AdminController::class, 'markNotificationAsRead'])->name('notifications.mark_read');
+        Route::post('notifications/read-all', [\App\Http\Controllers\Admin\AdminController::class, 'markAllNotificationsAsRead'])->name('notifications.mark_all_read');
+
         Route::post('users/{user}/authorize-device', [\App\Http\Controllers\Admin\UserController::class, 'authorizeDevice'])->name('users.authorize_device');
         Route::post('users/{user}/reset-device', [\App\Http\Controllers\Admin\UserController::class, 'resetDevice'])->name('users.reset_device');
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
@@ -136,5 +139,9 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
 
         Route::get('/depenses/create', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'create'])->name('depenses.create');
         Route::post('/depenses', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'store'])->name('depenses.store');
+
+        // Validation des débits admin (achat comptant / dépense administrative)
+        Route::post('/validations/{validation}/confirmer', [\App\Http\Controllers\Boutiquier\DebitValidationController::class, 'confirmer'])->name('validations.confirmer');
+        Route::post('/validations/{validation}/contester', [\App\Http\Controllers\Boutiquier\DebitValidationController::class, 'contester'])->name('validations.contester');
     });
 });

@@ -60,6 +60,9 @@ class AdminController extends Controller
 
         $recentActivities = LogActivite::latest()->take(5)->get();
 
+        // Notifications non lues de l'admin (validations/contestations de débits, etc.)
+        $adminNotifications = auth()->user()->unreadNotifications;
+
         $totalVentes = Vente::sum('montant_total');
         $totalDepenses = Depense::where('statut', 'approved')->sum('montant');
         $totalAchats = Achat::sum('montant_total');
@@ -126,8 +129,26 @@ class AdminController extends Controller
             'approvedDeductions',
             'topProducts',
             'deductionSearch',
-            'profitNet'
+            'profitNet',
+            'adminNotifications'
         ));
+    }
+
+    public function markNotificationAsRead($notificationId)
+    {
+        $notification = auth()->user()->unreadNotifications()->find($notificationId);
+        if ($notification) {
+            $notification->markAsRead();
+        }
+
+        return back();
+    }
+
+    public function markAllNotificationsAsRead()
+    {
+        auth()->user()->unreadNotifications->markAsRead();
+
+        return back();
     }
 
     public function updateDeductionAmount(Request $request)

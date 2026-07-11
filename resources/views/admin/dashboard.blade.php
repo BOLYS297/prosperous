@@ -11,6 +11,44 @@
     </div>
 </div>
 
+@if(isset($adminNotifications) && $adminNotifications->isNotEmpty())
+    <div class="mb-8 glass-panel rounded-2xl p-6 bg-blue-50 border border-blue-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+                <i class="ri-notification-3-line text-2xl text-blue-600"></i>
+                <h3 class="text-lg font-bold text-slate-800">Notifications</h3>
+                <span class="ml-1 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">{{ $adminNotifications->count() }}</span>
+            </div>
+            <form action="{{ route('admin.notifications.mark_all_read') }}" method="POST">
+                @csrf
+                <button type="submit" class="text-sm text-slate-500 hover:text-slate-700 font-semibold">Tout marquer comme lu</button>
+            </form>
+        </div>
+        <div class="space-y-3">
+            @foreach($adminNotifications as $notification)
+                <div class="p-4 rounded-2xl bg-white border border-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        @if(!empty($notification->data['title']))
+                            <p class="font-semibold text-slate-800">{{ $notification->data['title'] }}</p>
+                        @endif
+                        <p class="text-sm text-slate-600">{{ $notification->data['message'] ?? '' }}</p>
+                        <p class="text-xs text-slate-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        @if(!empty($notification->data['action_url']))
+                            <a href="{{ $notification->data['action_url'] }}" class="text-blue-600 hover:text-blue-800 font-bold text-sm">{{ $notification->data['action_label'] ?? 'Voir' }}</a>
+                        @endif
+                        <form action="{{ route('admin.notifications.mark_read', $notification->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="text-slate-400 hover:text-slate-600 text-sm">Marquer comme lu</button>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
+
 @if(!empty($rechargesEnAttente) && $rechargesEnAttente > 0)
     <div class="mb-8 glass-panel rounded-2xl p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200">
         <div class="flex items-center justify-between">

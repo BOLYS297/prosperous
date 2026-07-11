@@ -22,6 +22,51 @@
         </div>
     @endif
 
+    @if(isset($pendingValidations) && $pendingValidations->isNotEmpty())
+        <div class="mb-6 glass-panel rounded-2xl p-6 bg-rose-50 border border-rose-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="ri-bank-card-line text-2xl text-rose-600"></i>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Débits à valider</h3>
+                        <p class="text-sm text-slate-600">Confirmez ou contestez ces débits avant qu'ils n'impactent votre solde.</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-rose-100 text-rose-700 px-3 py-1 text-xs font-semibold">{{ $pendingValidations->count() }} en attente</span>
+            </div>
+            <div class="space-y-4">
+                @foreach($pendingValidations as $validation)
+                    <div class="p-4 rounded-2xl bg-white border border-rose-100">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{{ $validation->source_label }}</span>
+                                    <span class="text-lg font-black text-rose-600">{{ number_format($validation->amount, 0, ',', ' ') }} FCFA</span>
+                                </div>
+                                <p class="text-sm text-slate-700 mt-1">{{ $validation->motif }}</p>
+                                <p class="text-xs text-slate-400 mt-1">Par {{ $validation->initiator->nom_utilisateur ?? 'Administrateur' }} · {{ $validation->created_at->diffForHumans() }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <form action="{{ route('boutiquier.validations.confirmer', $validation) }}" method="POST" data-offline-sync="true">
+                                    @csrf
+                                    <button type="submit" onclick="return confirm('Valider ce débit de {{ number_format($validation->amount, 0, ',', ' ') }} FCFA ? Votre solde sera débité.')" class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center">
+                                        <i class="ri-check-line mr-1"></i> Valider
+                                    </button>
+                                </form>
+                                <form action="{{ route('boutiquier.validations.contester', $validation) }}" method="POST" data-offline-sync="true">
+                                    @csrf
+                                    <button type="submit" onclick="return confirm('Contester ce débit ? L\'administrateur sera notifié et votre solde ne sera pas débité.')" class="px-4 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-lg hover:bg-slate-300 transition-colors flex items-center">
+                                        <i class="ri-close-line mr-1"></i> Contester
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if(isset($notifications) && $notifications->isNotEmpty())
         <div class="mb-6 glass-panel rounded-2xl p-6 bg-orange-50 border border-orange-200">
             <div class="flex items-center justify-between mb-4">
