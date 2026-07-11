@@ -35,13 +35,13 @@
                 <select name="boutique_id" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="">-- Sélectionner une boutique --</option>
                     @foreach($boutiques as $boutique)
-                        <option value="{{ $boutique->id }}" {{ old('boutique_id') == $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }} (Solde: {{ number_format($boutique->solde, 0, ',', ' ') }} FCFA)</option>
+                        <option value="{{ $boutique->id }}" {{ old('boutique_id') == $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }} (Solde: {{ number_format($boutique->solde, 0, ',', ' ') }} {{ param("currency") }})</option>
                     @endforeach
                 </select>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Montant (FCFA) <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Montant ({{ param("currency") }}) <span class="text-red-500">*</span></label>
                 <input type="number" step="0.01" name="montant" value="{{ old('montant') }}" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 10000" required>
             </div>
         </div>

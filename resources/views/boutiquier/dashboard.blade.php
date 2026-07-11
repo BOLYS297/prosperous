@@ -41,7 +41,7 @@
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{{ $validation->source_label }}</span>
-                                    <span class="text-lg font-black text-rose-600">{{ number_format($validation->amount, 0, ',', ' ') }} FCFA</span>
+                                    <span class="text-lg font-black text-rose-600">{{ number_format($validation->amount, 0, ',', ' ') }} {{ param("currency") }}</span>
                                 </div>
                                 <p class="text-sm text-slate-700 mt-1">{{ $validation->motif }}</p>
                                 <p class="text-xs text-slate-400 mt-1">Par {{ $validation->initiator->nom_utilisateur ?? 'Administrateur' }} · {{ $validation->created_at->diffForHumans() }}</p>
@@ -49,7 +49,7 @@
                             <div class="flex items-center gap-2 shrink-0">
                                 <form action="{{ route('boutiquier.validations.confirmer', $validation) }}" method="POST" data-offline-sync="true">
                                     @csrf
-                                    <button type="submit" onclick="return confirm('Valider ce débit de {{ number_format($validation->amount, 0, ',', ' ') }} FCFA ? Votre solde sera débité.')" class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center">
+                                    <button type="submit" onclick="return confirm('Valider ce débit de {{ number_format($validation->amount, 0, ',', ' ') }} {{ param("currency") }} ? Votre solde sera débité.')" class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center">
                                         <i class="ri-check-line mr-1"></i> Valider
                                     </button>
                                 </form>
@@ -150,7 +150,7 @@
             </div>
             <div>
                 <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Recettes du Jour</div>
-                <div class="text-2xl font-black text-slate-800">{{ number_format($ventesAujourdhui, 0, ',', ' ') }} <span class="text-sm font-medium text-slate-500">FCFA</span></div>
+                <div class="text-2xl font-black text-slate-800">{{ number_format($ventesAujourdhui, 0, ',', ' ') }} <span class="text-sm font-medium text-slate-500">{{ param("currency") }}</span></div>
             </div>
         </div> --}}
 
@@ -160,7 +160,7 @@
             </div>
             <div>
                 <div class="text-sm font-medium text-slate-500 mb-1">Dettes à recouvrer</div>
-                <div class="text-2xl font-black text-slate-800">{{ number_format($dettesRestantes ?? 0, 0, ',', ' ') }} FCFA</div>
+                <div class="text-2xl font-black text-slate-800">{{ number_format($dettesRestantes ?? 0, 0, ',', ' ') }} {{ param("currency") }}</div>
                 <div class="text-sm text-slate-500 mt-1">{{ $dettesCount ?? 0 }} achat(s) en dette</div>
                 <div class="text-xs text-slate-400 mt-2">Consultez le suivi des dettes depuis la page dédiée.</div>
             </div>
@@ -259,7 +259,7 @@
 
             <div class="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
                 <div class="text-sm text-slate-500">Total du ticket</div>
-                <div class="text-3xl font-black text-slate-900" id="cart-total">0 FCFA</div>
+                <div class="text-3xl font-black text-slate-900" id="cart-total">0 {{ param("currency") }}</div>
             </div>
 
             <form id="checkout-form" method="POST" action="{{ route('boutiquier.ventes.store') }}" class="mt-6" data-offline-sync="true">
@@ -298,7 +298,7 @@
                         @if($produit->reference)
                             <p class="text-xs text-slate-500 font-mono bg-slate-50 inline-block px-2 py-1 rounded mt-1">{{ $produit->reference }}</p>
                         @endif
-                        <p class="text-blue-600 font-black text-xl mt-2"> <span class="product-price-label">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> FCFA</p>
+                        <p class="text-blue-600 font-black text-xl mt-2"> <span class="product-price-label">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> {{ param("currency") }}</p>
                         <p class="text-xs text-slate-500 mt-1">{{ $enStock ? 'En stock' : 'Rupture de stock' }}{{ $enStock ? ' • Qté: ' . $quantiteStock : '' }}</p>
 
                         @php
@@ -345,7 +345,7 @@
                             </button>
                         </div>
 
-                        <p class="text-sm text-slate-500 mt-3">Total : <span class="font-bold text-slate-900 total-price">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> FCFA</p>
+                        <p class="text-sm text-slate-500 mt-3">Total : <span class="font-bold text-slate-900 total-price">{{ number_format($produit->prix_vente, 0, ',', ' ') }}</span> {{ param("currency") }}</p>
                         <p class="grossiste-note text-sm text-rose-600 mt-2 hidden"></p>
                     </div>
                 </div>
@@ -432,7 +432,7 @@
                     line.innerHTML = `
                         <div class="min-w-0">
                             <div class="font-semibold text-slate-900 truncate">${item.nom}</div>
-                            <div class="text-xs text-slate-500">${new Intl.NumberFormat('fr-FR').format(item.unitPrice)} FCFA / u.</div>
+                            <div class="text-xs text-slate-500">${new Intl.NumberFormat('fr-FR').format(item.unitPrice)} {{ param("currency") }} / u.</div>
                             <div class="mt-2 flex items-center gap-2">
                                 <button type="button" data-action="cart-decrease" data-produit-id="${item.produitId}" class="w-8 h-8 bg-slate-200 hover:bg-slate-300 rounded-lg flex items-center justify-center text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed" ${item.quantite <= 1 ? 'disabled' : ''} aria-label="Diminuer">
                                     <i class="ri-subtract-line"></i>
@@ -444,7 +444,7 @@
                             </div>
                         </div>
                         <div class="text-right shrink-0">
-                            <div class="text-slate-800 font-bold">${new Intl.NumberFormat('fr-FR').format(item.unitPrice * item.quantite)} FCFA</div>
+                            <div class="text-slate-800 font-bold">${new Intl.NumberFormat('fr-FR').format(item.unitPrice * item.quantite)} {{ param("currency") }}</div>
                             <button type="button" data-action="remove-cart-item" data-produit-id="${item.produitId}" class="mt-2 text-xs text-rose-600 hover:text-rose-800">Supprimer</button>
                         </div>
                     `;
@@ -464,7 +464,7 @@
                 });
             }
 
-            cartTotalLabel.textContent = new Intl.NumberFormat('fr-FR').format(total) + ' FCFA';
+            cartTotalLabel.textContent = new Intl.NumberFormat('fr-FR').format(total) + ' {{ param("currency") }}';
             checkoutIsGrossiste.value = getSaleType() === 'grossiste' ? '1' : '0';
             checkoutGrossisteId.value = getSaleType() === 'grossiste' ? getSelectedGrossisteId() : '';
         }
@@ -537,7 +537,7 @@
             const priceLabel = card.querySelector('.product-price-label');
             const quantity = parseInt(quantityInput.value, 10) || 1;
             const maxStock = parseInt(quantityInput.getAttribute('max'), 10) || quantity;
-            const unitPrice = Number(priceLabel.textContent.replace(/\s/g, '').replace('FCFA', '')) || parseFloat(card.dataset.clientPrice) || 0;
+            const unitPrice = Number(priceLabel.textContent.replace(/\s/g, '').replace('{{ param("currency") }}', '')) || parseFloat(card.dataset.clientPrice) || 0;
             const productName = card.querySelector('h4')?.textContent.trim() || 'Produit';
 
             if (!cart[productId]) {

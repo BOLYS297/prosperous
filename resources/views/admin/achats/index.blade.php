@@ -70,7 +70,7 @@
                             {{ $achat->boutique ? $achat->boutique->nom : '-' }}
                         </td>
                         <td class="p-4 font-bold text-slate-800">
-                            {{ number_format($achat->montant_total, 0, ',', ' ') }} FCFA
+                            {{ number_format($achat->montant_total, 0, ',', ' ') }} {{ param("currency") }}
                         </td>
                         <td class="p-4">
                             @php $validation = $achatValidations[$achat->id] ?? null; @endphp

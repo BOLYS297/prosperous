@@ -86,12 +86,12 @@
                         </td>
                         <td class="p-4">
                             <span class="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
-                                {{ number_format($produit->prix_achat, 0, ',', ' ') }} FCFA
+                                {{ number_format($produit->prix_achat, 0, ',', ' ') }} {{ param("currency") }}
                             </span>
                         </td>
                         <td class="p-4">
                             <span class="px-3 py-1 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700">
-                                {{ number_format($produit->prix_vente, 0, ',', ' ') }} FCFA
+                                {{ number_format($produit->prix_vente, 0, ',', ' ') }} {{ param("currency") }}
                             </span>
                         </td>
                         <td class="p-4 text-right">

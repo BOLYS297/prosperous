@@ -49,14 +49,14 @@
             <div class="mb-5">
                 <p class="text-xs uppercase tracking-wide text-slate-400 font-semibold">Solde actuel</p>
                 <p class="text-2xl font-black {{ $boutique->solde < 0 ? 'text-rose-600' : 'text-slate-900' }}">
-                    {{ number_format($boutique->solde, 0, ',', ' ') }} FCFA
+                    {{ number_format($boutique->solde, 0, ',', ' ') }} {{ param("currency") }}
                 </p>
             </div>
 
             <form action="{{ route('admin.boutiques.crediter', $boutique) }}" method="POST" class="mt-auto space-y-3 border-t border-slate-200 pt-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Montant à créditer (FCFA)</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Montant à créditer ({{ param("currency") }})</label>
                     <input type="number" name="montant" min="1" step="1" required placeholder="Ex : 50000"
                         class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>

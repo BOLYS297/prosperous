@@ -95,7 +95,7 @@
 
         <div class="flex items-center justify-between border-t border-slate-200 pt-4 mb-6">
             <span class="text-sm font-medium text-slate-500">Total du ticket</span>
-            <span id="ticket-total" class="text-2xl font-black text-slate-900">0 FCFA</span>
+            <span id="ticket-total" class="text-2xl font-black text-slate-900">0 {{ param("currency") }}</span>
         </div>
 
         <div class="flex gap-3 justify-end">
@@ -212,9 +212,9 @@
         const lineTotal = pr.available ? pr.price * qty : 0;
 
         const parts = [];
-        parts.push(`<span>Prix unitaire : <b>${fmtMoney(pr.price)} FCFA</b></span>`);
+        parts.push(`<span>Prix unitaire : <b>${fmtMoney(pr.price)} {{ param("currency") }}</b></span>`);
         parts.push(`<span>Stock : <b class="${pr.stock <= 0 ? 'text-rose-600' : 'text-slate-800'}">${pr.stock}</b></span>`);
-        parts.push(`<span>Total ligne : <b>${fmtMoney(lineTotal)} FCFA</b></span>`);
+        parts.push(`<span>Total ligne : <b>${fmtMoney(lineTotal)} {{ param("currency") }}</b></span>`);
 
         if (pr.stock <= 0) {
             parts.push('<span class="font-semibold text-rose-600"><i class="ri-error-warning-line"></i> Rupture de stock</span>');
@@ -236,7 +236,7 @@
         let total = 0;
         document.querySelectorAll('.vente-ligne').forEach((line) => { total += updateLine(line); });
         const el = document.getElementById('ticket-total');
-        if (el) el.textContent = fmtMoney(total) + ' FCFA';
+        if (el) el.textContent = fmtMoney(total) + ' {{ param("currency") }}';
     }
 
     document.getElementById('is_grossiste').addEventListener('change', function () {
