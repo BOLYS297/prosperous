@@ -52,21 +52,21 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Prix d'Achat (FCFA) <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Prix d'Achat ({{ param("currency") }}) <span class="text-red-500">*</span></label>
                 <div class="relative">
                     <input type="number" step="0.01" name="prix_achat" value="{{ old('prix_achat', $produit->prix_achat ?? '') }}" class="w-full pl-4 pr-16 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 4000" required>
                     <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
-                        FCFA
+                        {{ param("currency") }}
                     </div>
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Prix de Vente (FCFA) <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Prix de Vente ({{ param("currency") }}) <span class="text-red-500">*</span></label>
                 <div class="relative">
                     <input type="number" step="0.01" name="prix_vente" value="{{ old('prix_vente', $produit->prix_vente ?? '') }}" class="w-full pl-4 pr-16 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 5000" required>
                     <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
-                        FCFA
+                        {{ param("currency") }}
                     </div>
                 </div>
             </div>
@@ -92,11 +92,11 @@
                             <input type="hidden" name="prix_grossiste[{{ $loop->index }}][grossiste_id]" value="{{ $grossiste->id }}">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-2">Prix d'achat</label>
-                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_achat]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_achat', $prixProfil?->prix_achat ?? $produit->prix_achat ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="FCFA">
+                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_achat]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_achat', $prixProfil?->prix_achat ?? $produit->prix_achat ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="{{ param("currency") }}">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente grossiste</label>
-                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_vente]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_vente', $prixProfil?->prix_vente ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="FCFA">
+                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_vente]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_vente', $prixProfil?->prix_vente ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="{{ param("currency") }}">
                             </div>
                         </div>
                     @endforeach

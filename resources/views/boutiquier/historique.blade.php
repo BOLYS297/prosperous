@@ -6,7 +6,7 @@
         <i class="ri-arrow-left-line mr-1"></i> Retour à la caisse
     </a>
     <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Historique des Ventes de la Semaine</h2>
-    <p class="text-black">Du {{ $debutSemaine->translatedFormat('d F') }} au {{ $finSemaine->translatedFormat('d F Y') }} — Total : <span class="font-bold">{{ number_format($totalSemaine, 0, ',', ' ') }} FCFA</span></p>
+    <p class="text-black">Du {{ $debutSemaine->translatedFormat('d F') }} au {{ $finSemaine->translatedFormat('d F Y') }} — Total : <span class="font-bold">{{ number_format($totalSemaine, 0, ',', ' ') }} {{ param("currency") }}</span></p>
 </div>
 
 {{-- <!-- Total du jour -->
@@ -17,7 +17,7 @@
         </div>
         <div>
             <div class="text-sm font-medium text-slate-500">Total des recettes du jour</div>
-            <div class="text-3xl font-black text-slate-800">{{ number_format($totalJour, 0, ',', ' ') }} <span class="text-sm font-medium text-slate-500">FCFA</span></div>
+            <div class="text-3xl font-black text-slate-800">{{ number_format($totalJour, 0, ',', ' ') }} <span class="text-sm font-medium text-slate-500">{{ param("currency") }}</span></div>
         </div>
     </div>
     <div class="text-5xl font-black text-emerald-200">
@@ -58,7 +58,7 @@
                             {{ $ligne->quantite }}
                         </td>
                         <td class="p-4 text-right font-black text-blue-600">
-                            {{ number_format($ligne->quantite * $ligne->prix_unitaire, 0, ',', ' ') }} FCFA
+                            {{ number_format($ligne->quantite * $ligne->prix_unitaire, 0, ',', ' ') }} {{ param("currency") }}
                         </td>
                         @if($loop->first)
                             @php $modifiable = $vente->created_at->copy()->addHours(24)->isFuture(); @endphp
@@ -127,7 +127,7 @@
                             <td class="p-4 text-slate-500"> <i class="ri-time-line mr-1"></i> ${timeLabel} </td>
                             <td class="p-4 font-bold text-slate-800"> ${ligne.produit?.nom || '—'} </td>
                             <td class="p-4 text-center font-bold text-slate-700"> ${ligne.quantite} </td>
-                            <td class="p-4 text-right font-black text-blue-600"> ${new Intl.NumberFormat('fr-FR').format(montant)} FCFA </td>
+                            <td class="p-4 text-right font-black text-blue-600"> ${new Intl.NumberFormat('fr-FR').format(montant)} {{ param("currency") }} </td>
                             ${idx === 0 ? `<td class="p-4 text-center" rowspan="${v.lignes.length}"><a href="/boutiquier/ventes/${v.id}" class="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Actions</a></td>` : ''}
                         </tr>
                     `);

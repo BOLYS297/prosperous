@@ -45,7 +45,7 @@
                             </span>
                         </td>
                         <td class="p-4 text-slate-700 font-medium">
-                            {{ number_format($user->monthly_salary, 0, ',', ' ') }} FCFA
+                            {{ number_format($user->monthly_salary, 0, ',', ' ') }} {{ param("currency") }}
                         </td>
                         <td class="p-4 text-slate-600">
                             <div>

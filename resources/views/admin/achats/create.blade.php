@@ -145,7 +145,7 @@
 
         <div class="flex justify-between items-center bg-slate-800 text-white p-6 rounded-xl mb-8 shadow-lg">
             <span class="text-lg font-medium text-slate-300">Montant Total de la facture</span>
-            <span class="text-3xl font-bold" x-text="calculateTotal().toLocaleString() + ' FCFA'"></span>
+            <span class="text-3xl font-bold" x-text="calculateTotal().toLocaleString() + ' {{ param("currency") }}'"></span>
         </div>
 
         <div class="flex justify-end">

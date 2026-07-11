@@ -96,10 +96,10 @@
                             </td>
                         @endif
                         <td class="p-4 text-right text-slate-600">
-                            {{ number_format($ligne->prix_unitaire, 0, ',', ' ') }} FCFA
+                            {{ number_format($ligne->prix_unitaire, 0, ',', ' ') }} {{ param("currency") }}
                         </td>
                         <td class="p-4 text-right font-bold text-slate-800">
-                            {{ number_format($ligne->prix_unitaire * $ligne->quantite, 0, ',', ' ') }} FCFA
+                            {{ number_format($ligne->prix_unitaire * $ligne->quantite, 0, ',', ' ') }} {{ param("currency") }}
                         </td>
                     </tr>
                 @endforeach
@@ -110,7 +110,7 @@
                         Montant Total de la facture
                     </td>
                     <td class="p-4 text-right font-bold text-2xl text-slate-800">
-                        {{ number_format($achat->montant_total, 0, ',', ' ') }} FCFA
+                        {{ number_format($achat->montant_total, 0, ',', ' ') }} {{ param("currency") }}
                     </td>
                 </tr>
             </tfoot>

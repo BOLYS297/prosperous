@@ -9,7 +9,7 @@
         </div>
         <div class="glass-panel p-5 rounded-2xl bg-white shadow-sm border border-slate-200">
             <div class="text-sm text-slate-500">Solde boutique</div>
-            <div class="text-3xl font-black text-slate-800">{{ number_format($boutique->solde ?? 0, 0, ',', ' ') }} FCFA</div>
+            <div class="text-3xl font-black text-slate-800">{{ number_format($boutique->solde ?? 0, 0, ',', ' ') }} {{ param("currency") }}</div>
         </div>
     </div>
 
@@ -33,7 +33,7 @@
         </div>
         <div class="glass-panel rounded-2xl p-6 bg-white shadow-sm">
             <div class="text-sm text-slate-500 mb-2">Montant total restant</div>
-            <div class="text-4xl font-black text-slate-800">{{ number_format($montantTotalRestant, 0, ',', ' ') }} FCFA</div>
+            <div class="text-4xl font-black text-slate-800">{{ number_format($montantTotalRestant, 0, ',', ' ') }} {{ param("currency") }}</div>
         </div>
         <div class="glass-panel rounded-2xl p-6 bg-white shadow-sm">
             <div class="text-sm text-slate-500 mb-2">Dernière mise à jour</div>
@@ -79,9 +79,9 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="p-4 text-center text-slate-600">{{ number_format($achat->montant_total, 0, ',', ' ') }} FCFA</td>
-                                <td class="p-4 text-center text-emerald-700 font-semibold">{{ number_format($achat->montant_paye, 0, ',', ' ') }} FCFA</td>
-                                <td class="p-4 text-center text-rose-700 font-semibold">{{ number_format($achat->reste_a_payer, 0, ',', ' ') }} FCFA</td>
+                                <td class="p-4 text-center text-slate-600">{{ number_format($achat->montant_total, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                <td class="p-4 text-center text-emerald-700 font-semibold">{{ number_format($achat->montant_paye, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                <td class="p-4 text-center text-rose-700 font-semibold">{{ number_format($achat->reste_a_payer, 0, ',', ' ') }} {{ param("currency") }}</td>
                                 <td class="p-4">
                                     <form action="{{ route('boutiquier.dettes.payer', $achat) }}" method="POST" data-offline-sync="true" class="space-y-3">
                                         @csrf

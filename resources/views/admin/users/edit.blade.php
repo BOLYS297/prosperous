@@ -41,7 +41,7 @@
                 <p class="text-xs text-slate-500 mt-1">Si vous laissez ce champ vide, le mot de passe actuel sera conservé.</p>
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Salaire mensuel (FCFA)</label>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Salaire mensuel ({{ param("currency") }})</label>
                 <input type="number" min="0" name="monthly_salary" value="{{ old('monthly_salary', $user->monthly_salary) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
             </div>
         </div>
