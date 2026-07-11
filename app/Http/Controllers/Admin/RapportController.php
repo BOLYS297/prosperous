@@ -161,7 +161,7 @@ class RapportController extends Controller
             $file = fopen('php://output', 'w');
             fputs($file, "\xEF\xBB\xBF"); // BOM UTF-8
 
-            fputcsv($file, ['Date d\'enregistrement', 'Boutique', 'Montant (FCFA)', 'Statut'], ';');
+            fputcsv($file, ['Date d\'enregistrement', 'Boutique', 'Montant (' . param('currency') . ')', 'Statut'], ';');
 
             foreach ($ventes as $vente) {
                 $date = $vente->created_at ? $vente->created_at->format('d/m/Y H:i:s') : 'N/A';

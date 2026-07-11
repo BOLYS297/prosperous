@@ -90,7 +90,7 @@ class LoginController extends Controller
                             try {
                                 Notification::send($adminUsers, new AdminValidationNotification(
                                     'Validation de déduction salariale requise',
-                                    "Une nouvelle déduction salariale de {$deduction->amount} FCFA est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
+                                    "Une nouvelle déduction salariale de " . money_format_app($deduction->amount) . " est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
                                     'Voir les déductions',
                                     route('admin.dashboard')
                                 ));
@@ -189,7 +189,7 @@ class LoginController extends Controller
             try {
                 Notification::send($adminUsers, new AdminValidationNotification(
                     'Validation de déduction salariale requise',
-                    "Une nouvelle déduction salariale de {$deductionAmount} FCFA est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
+                    "Une nouvelle déduction salariale de " . money_format_app($deductionAmount) . " est en attente de validation pour l'utilisateur {$user->nom_utilisateur}.",
                     'Voir les déductions',
                     route('admin.dashboard')
                 ));

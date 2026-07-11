@@ -67,13 +67,13 @@ class BoutiqueController extends Controller
             LogActivite::create([
                 'user_id' => Auth::id(),
                 'action' => 'admin.boutiques.crediter',
-                'description' => "Crédit de " . number_format($montant, 0, ',', ' ') . " FCFA sur le solde de la boutique {$boutique->nom} ({$motif}).",
+                'description' => "Crédit de " . money_format_app($montant) . " sur le solde de la boutique {$boutique->nom} ({$motif}).",
             ]);
         });
 
         $this->notifyBoutiquiers($boutique, $montant, $motif);
 
-        return back()->with('success', 'Le solde de ' . $boutique->nom . ' a été crédité de ' . number_format($montant, 0, ',', ' ') . ' FCFA.');
+        return back()->with('success', 'Le solde de ' . $boutique->nom . ' a été crédité de ' . money_format_app($montant) . '.');
     }
 
     protected function notifyBoutiquiers(Boutique $boutique, float $montant, string $motif): void
@@ -88,7 +88,7 @@ class BoutiqueController extends Controller
 
         Notification::send($recipients, new PendingActionNotification(
             'Solde crédité',
-            'Votre solde a été crédité de ' . number_format($montant, 0, ',', ' ') . ' FCFA (' . $motif . ').',
+            'Votre solde a été crédité de ' . money_format_app($montant) . ' (' . $motif . ').',
             'Voir',
             route('boutiquier.dashboard'),
             [

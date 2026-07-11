@@ -256,7 +256,7 @@ class AchatController extends Controller
 
         Notification::send($recipients, new \App\Notifications\PendingActionNotification(
             'Débit à valider',
-            'Un paiement comptant de ' . number_format($montant, 0, ',', ' ') . ' FCFA pour ' . $objet . ' attend votre validation avant débit de votre solde.',
+            'Un paiement comptant de ' . money_format_app($montant) . ' pour ' . $objet . ' attend votre validation avant débit de votre solde.',
             'Valider',
             route('boutiquier.dashboard'),
             [

@@ -187,7 +187,7 @@ class AdminController extends Controller
         if ($deduction->user) {
             $deduction->user->notify(new SalaryDeductionNotification(
                 'Déduction salariale approuvée',
-                "Votre déduction salariale de {$deduction->amount} FCFA a été approuvée par l'administrateur.",
+                "Votre déduction salariale de " . money_format_app($deduction->amount) . " a été approuvée par l'administrateur.",
                 'Voir les détails',
                 route('dashboard')
             ));
@@ -196,7 +196,7 @@ class AdminController extends Controller
         LogActivite::create([
             'user_id' => auth()->id(),
             'action' => 'admin.deductions.approve',
-            'description' => "Déduction approuvée pour l'utilisateur {$deduction->user->nom_utilisateur} : {$deduction->amount} FCFA",
+            'description' => "Déduction approuvée pour l'utilisateur {$deduction->user->nom_utilisateur} : " . money_format_app($deduction->amount),
         ]);
 
         return back()->with('status', 'Déduction approuvée et enregistrée.');
@@ -224,8 +224,8 @@ class AdminController extends Controller
 
         if ($deduction->user) {
             $message = $wasApproved
-                ? "Votre déduction salariale de {$deduction->amount} FCFA, précédemment validée, a finalement été annulée par l'administrateur."
-                : "Votre déduction salariale de {$deduction->amount} FCFA a été rejetée par l'administrateur.";
+                ? "Votre déduction salariale de " . money_format_app($deduction->amount) . ", précédemment validée, a finalement été annulée par l'administrateur."
+                : "Votre déduction salariale de " . money_format_app($deduction->amount) . " a été rejetée par l'administrateur.";
 
             $deduction->user->notify(new SalaryDeductionNotification(
                 $wasApproved ? 'Déduction salariale annulée' : 'Déduction salariale rejetée',
@@ -239,7 +239,7 @@ class AdminController extends Controller
             'user_id' => auth()->id(),
             'action' => 'admin.deductions.reject',
             'description' => $wasApproved
-                ? "Déduction validée annulée pour l'utilisateur {$deduction->user->nom_utilisateur} : {$deduction->amount} FCFA."
+                ? "Déduction validée annulée pour l'utilisateur {$deduction->user->nom_utilisateur} : " . money_format_app($deduction->amount) . "."
                 : "Déduction rejetée pour l'utilisateur {$deduction->user->nom_utilisateur}.",
         ]);
 

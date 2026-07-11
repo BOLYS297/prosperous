@@ -100,7 +100,7 @@ class DetteController extends Controller
 
         Notification::send($boutiqueUsers, new DebtRecoveryNotification(
             'Paiement de dette enregistré',
-            "Un paiement de " . number_format($montant, 0, ',', ' ') . " FCFA a été enregistré pour l'achat #{$achat->id}.",
+            "Un paiement de " . money_format_app($montant) . " a été enregistré pour l'achat #{$achat->id}.",
             'Voir les dettes',
             route('boutiquier.dettes.index')
         ));

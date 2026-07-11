@@ -84,7 +84,7 @@ class DepenseController extends Controller
 
             $this->notifyAdminsForValidation(
                 'Nouvelle dépense à valider',
-                "Une dépense de " . number_format($request->montant, 0, ',', ' ') . " FCFA a été soumise par le boutiquier {$request->user()->nom_utilisateur}.",
+                "Une dépense de " . money_format_app($request->montant) . " a été soumise par le boutiquier {$request->user()->nom_utilisateur}.",
                 'Voir les dépenses',
                 route('admin.rapports.index')
             );

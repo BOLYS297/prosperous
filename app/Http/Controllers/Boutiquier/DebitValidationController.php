@@ -58,7 +58,7 @@ class DebitValidationController extends Controller
         LogActivite::create([
             'user_id' => Auth::id(),
             'action' => 'boutiquier.debit.confirm',
-            'description' => 'Débit validé (' . $validation->source_label . ') : ' . number_format($validation->amount, 0, ',', ' ') . ' FCFA.',
+            'description' => 'Débit validé (' . $validation->source_label . ') : ' . money_format_app($validation->amount) . '.',
         ]);
 
         return back()->with('success', 'Débit validé. Votre solde a été mis à jour.');
@@ -95,7 +95,7 @@ class DebitValidationController extends Controller
         LogActivite::create([
             'user_id' => Auth::id(),
             'action' => 'boutiquier.debit.dispute',
-            'description' => 'Débit contesté (' . $validation->source_label . ') : ' . number_format($validation->amount, 0, ',', ' ') . ' FCFA.',
+            'description' => 'Débit contesté (' . $validation->source_label . ') : ' . money_format_app($validation->amount) . '.',
         ]);
 
         return back()->with('success', 'Débit contesté. L\'administrateur a été notifié ; votre solde n\'a pas été débité.');
@@ -120,7 +120,7 @@ class DebitValidationController extends Controller
         }
 
         $boutiqueNom = $validation->boutique->nom ?? 'une boutique';
-        $montant = number_format($validation->amount, 0, ',', ' ') . ' FCFA';
+        $montant = money_format_app($validation->amount);
 
         if ($confirmed) {
             $title = 'Débit validé par la boutique';
