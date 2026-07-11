@@ -184,19 +184,31 @@ class AdminController extends Controller
 
     public function rejectDeduction(Request $request, Deduction $deduction)
     {
-        if ($deduction->status !== 'pending') {
-            return back()->with('error', 'Cette déduction a déjà été traitée.');
+        // On autorise le rejet d'une déduction en attente OU déjà approuvée.
+        // Une déduction déjà rejetée ne peut pas l'être une seconde fois.
+        if ($deduction->status === 'rejected') {
+            return back()->with('error', 'Cette déduction a déjà été rejetée.');
         }
+
+        $wasApproved = $deduction->status === 'approved';
 
         $deduction->status = 'rejected';
         $deduction->approved_by = auth()->id();
         $deduction->approved_at = now();
         $deduction->save();
 
+        // Rejeter une déduction approuvée la retire automatiquement du calcul du
+        // salaire : SalaryPeriod::generateForPeriod ne somme que les déductions
+        // dont le statut est 'approved' (recalcul au prochain affichage de la paie).
+
         if ($deduction->user) {
+            $message = $wasApproved
+                ? "Votre déduction salariale de {$deduction->amount} FCFA, précédemment validée, a finalement été annulée par l'administrateur."
+                : "Votre déduction salariale de {$deduction->amount} FCFA a été rejetée par l'administrateur.";
+
             $deduction->user->notify(new SalaryDeductionNotification(
-                'Déduction salariale rejetée',
-                "Votre déduction salariale de {$deduction->amount} FCFA a été rejetée par l'administrateur.",
+                $wasApproved ? 'Déduction salariale annulée' : 'Déduction salariale rejetée',
+                $message,
                 'Voir les détails',
                 route('dashboard')
             ));
@@ -205,9 +217,13 @@ class AdminController extends Controller
         LogActivite::create([
             'user_id' => auth()->id(),
             'action' => 'admin.deductions.reject',
-            'description' => "Déduction rejetée pour l'utilisateur {$deduction->user->nom_utilisateur}.",
+            'description' => $wasApproved
+                ? "Déduction validée annulée pour l'utilisateur {$deduction->user->nom_utilisateur} : {$deduction->amount} FCFA."
+                : "Déduction rejetée pour l'utilisateur {$deduction->user->nom_utilisateur}.",
         ]);
 
-        return back()->with('status', 'Demande de déduction rejetée.');
+        return back()->with('status', $wasApproved
+            ? 'Déduction validée annulée. Le salaire sera recalculé automatiquement.'
+            : 'Demande de déduction rejetée.');
     }
 }

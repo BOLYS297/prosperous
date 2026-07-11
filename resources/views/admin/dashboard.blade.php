@@ -188,6 +188,7 @@
                     <th class="p-4 text-left font-semibold">Montant (FCFA)</th>
                     <th class="p-4 text-left font-semibold">Approuvé par</th>
                     <th class="p-4 text-left font-semibold">Date approbation</th>
+                    <th class="p-4 text-center font-semibold">Action</th>
                 </tr>
             </thead>
             <tbody id="approved-deductions-body">
@@ -214,6 +215,14 @@
                         </td>
                         <td class="p-4">
                             <span class="text-slate-600">{{ $deduction->approved_at ? $deduction->approved_at->format('d/m/Y H:i') : 'N/A' }}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <form action="{{ route('admin.deductions.reject', $deduction) }}" method="POST" style="display:inline;">
+                                @csrf
+                                <button type="submit" class="px-3 py-2 bg-rose-600 text-white text-xs font-semibold rounded-lg hover:bg-rose-700 transition-colors" onclick="return confirm('Annuler cette déduction déjà validée ? Le salaire de l\'employé sera recalculé.')">
+                                    <i class="ri-arrow-go-back-line"></i> Annuler
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 @endforeach
