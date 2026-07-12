@@ -76,22 +76,34 @@ class DemandeTransfertController extends Controller
 
     public function confirmer(Request $request, $id)
     {
-        $demande = DemandeTransfert::where('boutique_id', Auth::user()->boutique_id)->findOrFail($id);
+        $boutiqueId = Auth::user()->boutique_id;
+        $alreadyProcessed = false;
 
-        if ($demande->statut !== 'expediee') {
-            return back()->with('error', 'Vous ne pouvez confirmer qu\'une demande expédiée.');
-        }
+        DB::transaction(function () use ($id, $boutiqueId, &$alreadyProcessed) {
+            // Verrou + vérification atomique : le stock n'est ajouté à la boutique
+            // qu'une seule fois, même en cas de double-clic ou de rejeu hors-ligne.
+            $demande = DemandeTransfert::where('boutique_id', $boutiqueId)
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
 
-        DB::transaction(function () use ($demande) {
+            if (! $demande || $demande->statut !== 'expediee') {
+                $alreadyProcessed = true;
+                return;
+            }
+
             $demande->update(['statut' => 'livree']);
 
-            // Ajouter le stock à la boutique
             $stock = Stock::firstOrCreate(
                 ['boutique_id' => $demande->boutique_id, 'produit_id' => $demande->produit_id],
                 ['quantite' => 0]
             );
             $stock->increment('quantite', $demande->quantite_expediee);
         });
+
+        if ($alreadyProcessed) {
+            return back()->with('error', 'Cette demande a déjà été traitée.');
+        }
 
         return back()->with('success', 'Réception confirmée ! Le stock a été ajouté à votre boutique.');
     }
@@ -104,7 +116,8 @@ class DemandeTransfertController extends Controller
             'note_probleme' => 'required|string|max:500',
         ]);
 
-        $demande = DemandeTransfert::where('boutique_id', Auth::user()->boutique_id)->findOrFail($id);
+        $boutiqueId = Auth::user()->boutique_id;
+        $demande = DemandeTransfert::where('boutique_id', $boutiqueId)->findOrFail($id);
 
         if ($demande->statut !== 'expediee') {
             return back()->with('error', 'Vous ne pouvez signaler un problème que sur une demande expédiée.');
@@ -114,24 +127,39 @@ class DemandeTransfertController extends Controller
             return back()->with('error', 'La quantité reçue ne peut pas être supérieure à la quantité expédiée.');
         }
 
-        $quantiteRecue = $request->quantite_recue;
+        $quantiteRecue = (int) $request->quantite_recue;
         $quantiteManquante = $demande->quantite_expediee - $quantiteRecue;
+        $alreadyProcessed = false;
 
-        DB::transaction(function () use ($demande, $quantiteRecue, $request) {
-            $demande->update([
+        DB::transaction(function () use ($id, $boutiqueId, $quantiteRecue, $request, &$alreadyProcessed) {
+            $fresh = DemandeTransfert::where('boutique_id', $boutiqueId)
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $fresh || $fresh->statut !== 'expediee') {
+                $alreadyProcessed = true;
+                return;
+            }
+
+            $fresh->update([
                 'statut' => 'probleme',
                 'note_probleme' => $request->note_probleme,
                 'quantite_recue' => $quantiteRecue,
             ]);
 
             $stock = Stock::firstOrCreate(
-                ['boutique_id' => $demande->boutique_id, 'produit_id' => $demande->produit_id],
+                ['boutique_id' => $fresh->boutique_id, 'produit_id' => $fresh->produit_id],
                 ['quantite' => 0]
             );
             $stock->increment('quantite', $quantiteRecue);
         });
 
-        $demande->load(['produit', 'boutique']);
+        if ($alreadyProcessed) {
+            return back()->with('error', 'Cette demande a déjà été traitée.');
+        }
+
+        $demande->refresh()->load(['produit', 'boutique']);
 
         $admins = User::whereIn('role', ['admin', 'super_admin'])
             ->whereNotNull('email')
