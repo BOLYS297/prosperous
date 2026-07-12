@@ -99,6 +99,50 @@ class Stock extends Model
         return $consumed;
     }
 
+    /**
+     * Retire une quantité en suivant le FIFO (lots les plus anciens d'abord),
+     * sans dépasser le stock disponible. Retourne la quantité réellement retirée.
+     * Utilisé pour les ajustements manuels de stock (admin).
+     */
+    public static function reduceQuantity(int $boutiqueId, int $produitId, int $quantite): int
+    {
+        if ($quantite <= 0) {
+            return 0;
+        }
+
+        $stocks = static::where('boutique_id', $boutiqueId)
+            ->where('produit_id', $produitId)
+            ->where('quantite', '>', 0)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+
+        $remaining = $quantite;
+
+        foreach ($stocks as $stock) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $take = min($stock->quantite, $remaining);
+            $stock->decrement('quantite', $take);
+            $remaining -= $take;
+        }
+
+        return $quantite - $remaining;
+    }
+
+    /**
+     * Somme du stock disponible d'un produit dans une boutique (tous lots).
+     */
+    public static function totalFor(int $boutiqueId, int $produitId): int
+    {
+        return (int) static::where('boutique_id', $boutiqueId)
+            ->where('produit_id', $produitId)
+            ->sum('quantite');
+    }
+
     public static function restoreQuantity(int $boutiqueId, int $produitId, int $quantite): self
     {
         $stock = static::where('boutique_id', $boutiqueId)
