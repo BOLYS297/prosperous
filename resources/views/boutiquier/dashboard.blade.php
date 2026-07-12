@@ -229,14 +229,14 @@
                 </div>
 
                 <div class="lg:col-span-2" id="grossiste-select-container" style="display: none;">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Sélectionner un grossiste</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Grossiste <span class="text-slate-400 font-normal">(optionnel)</span></label>
                     <select id="grossiste-select" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="">-- Sélectionner un grossiste --</option>
+                        <option value="">-- Prix grossiste par défaut --</option>
                         @foreach($grossistes as $grossiste)
                             <option value="{{ $grossiste->id }}">{{ $grossiste->nom }} ({{ $grossiste->code }})</option>
                         @endforeach
                     </select>
-                    <p class="text-xs text-slate-500 mt-2">Utilisez ce code du grossiste pour vérifier son identité avant d'enregistrer la vente.</p>
+                    <p class="text-xs text-slate-500 mt-2">Laissez « Prix grossiste par défaut » pour vendre au tarif grossiste de base, ou choisissez un grossiste pour appliquer ses tarifs personnalisés.</p>
                 </div>
             </div>
         </div>
@@ -414,7 +414,6 @@
             const entries = Object.values(cart);
             const total = entries.reduce((sum, item) => sum + item.unitPrice * item.quantite, 0);
             const saleType = getSaleType();
-            const noGrossiste = saleType === 'grossiste' && !getSelectedGrossisteId();
 
             cartItemsContainer.innerHTML = '';
             if (!entries.length) {
@@ -423,7 +422,7 @@
                 checkoutLineInputs.innerHTML = '';
             } else {
                 cartEmptyMessage.style.display = 'none';
-                checkoutButton.disabled = noGrossiste;
+                checkoutButton.disabled = false;
                 checkoutLineInputs.innerHTML = '';
 
                 entries.forEach((item, index) => {
@@ -483,36 +482,32 @@
 
             if (saleType === 'grossiste') {
                 const grossiste = findGrossiste(selectedGrossisteId);
+                const clientPrice = parseFloat(card.dataset.clientPrice) || 0;
                 const lotGrossistePrice = parseFloat(card.dataset.grossistePrice);
                 const hasLotGrossiste = !isNaN(lotGrossistePrice) && lotGrossistePrice > 0;
 
-                if (!grossiste) {
-                    submitBtn.disabled = true;
-                    grossisteNote.textContent = 'Sélectionnez un grossiste pour utiliser le tarif grossiste.';
-                    grossisteNote.classList.remove('hidden');
-                    grossisteNote.classList.add('text-rose-600');
-                } else if (grossiste.prix[productId] !== undefined) {
-                    // 1) Tarif SPÉCIFIQUE de ce grossiste (override) -> prioritaire
-                    unitPrice = parseFloat(grossiste.prix[productId]);
-                    submitBtn.disabled = false;
-                    grossisteNote.textContent = 'Tarif grossiste : ' + grossiste.nom + ' (' + grossiste.code + ')';
-                    grossisteNote.classList.remove('hidden', 'text-rose-600');
-                    grossisteNote.classList.add('text-slate-500');
-                } else if (hasLotGrossiste) {
-                    // 2) Prix grossiste du LOT (défini à l'achat)
-                    unitPrice = lotGrossistePrice;
-                    submitBtn.disabled = false;
-                    grossisteNote.textContent = 'Prix grossiste du lot en cours';
-                    grossisteNote.classList.remove('hidden', 'text-rose-600');
-                    grossisteNote.classList.add('text-slate-500');
+                // Prix grossiste PAR DÉFAUT du produit : prix grossiste du lot, sinon prix client.
+                const defaultGrossiste = hasLotGrossiste ? lotGrossistePrice : clientPrice;
+
+                // Tarif SPÉCIFIQUE de ce grossiste (override) s'il est défini et > 0.
+                const override = grossiste ? parseFloat(grossiste.prix[productId]) : NaN;
+                const hasOverride = !isNaN(override) && override > 0;
+
+                if (hasOverride) {
+                    unitPrice = override;
+                    grossisteNote.textContent = 'Tarif ' + grossiste.nom + ' (' + grossiste.code + ')';
                 } else {
-                    // 3) Aucun prix grossiste disponible
-                    unitPrice = 0;
-                    submitBtn.disabled = true;
-                    grossisteNote.textContent = 'Aucun prix grossiste (ni tarif grossiste, ni prix défini à l\'achat).';
-                    grossisteNote.classList.remove('hidden');
-                    grossisteNote.classList.add('text-rose-600');
+                    unitPrice = defaultGrossiste;
+                    grossisteNote.textContent = grossiste
+                        ? 'Prix grossiste par défaut (aucun tarif spécifique pour ' + grossiste.nom + ')'
+                        : 'Prix grossiste par défaut';
                 }
+
+                grossisteNote.classList.remove('hidden', 'text-rose-600');
+                grossisteNote.classList.add('text-slate-500');
+
+                // Seul le stock conditionne la vente (le prix grossiste existe toujours).
+                submitBtn.disabled = !(card.dataset.inStock === '1');
             } else {
                 submitBtn.disabled = !(card.dataset.inStock === '1');
                 grossisteNote.classList.add('hidden');

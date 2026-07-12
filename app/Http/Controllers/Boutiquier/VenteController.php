@@ -39,9 +39,8 @@ class VenteController extends Controller
             ];
         }
 
-        if ($isGrossiste && !$grossisteId) {
-            return back()->with('error', 'Veuillez sélectionner un grossiste pour cette vente.');
-        }
+        // Le grossiste est OPTIONNEL : sans grossiste sélectionné, la vente utilise
+        // le prix grossiste par défaut de chaque produit (lot, sinon prix client).
 
         try {
         DB::transaction(function () use ($lignesData, $user, $boutiqueId, $isGrossiste, $grossisteId, $request) {
@@ -71,7 +70,7 @@ class VenteController extends Controller
 
                 $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $produit->id, $quantite, $isGrossiste ? null : $produit->prix_vente);
 
-                if ($isGrossiste && $prixGrossisteOverride) {
+                if ($isGrossiste && $prixGrossisteOverride && (float) $prixGrossisteOverride->prix_vente > 0) {
                     // Tarif grossiste spécifique : une seule ligne au prix du grossiste.
                     $unitPrice = (float) $prixGrossisteOverride->prix_vente;
                     $total += $unitPrice * $quantite;
@@ -218,9 +217,7 @@ class VenteController extends Controller
         $isGrossiste = $request->input('is_grossiste') === '1';
         $grossisteId = $isGrossiste ? $request->grossiste_id : null;
 
-        if ($isGrossiste && !$grossisteId) {
-            return back()->with('error', 'Veuillez sélectionner un grossiste.');
-        }
+        // Grossiste optionnel (prix grossiste par défaut sinon).
 
         $newLines = $request->input('lignes', []);
 
@@ -237,7 +234,7 @@ class VenteController extends Controller
                 $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
                     ->where('produit_id', $produit->id)
                     ->first();
-                $grossisteOverride = $prixGrossiste ? (float) $prixGrossiste->prix_vente : null;
+                $grossisteOverride = ($prixGrossiste && (float) $prixGrossiste->prix_vente > 0) ? (float) $prixGrossiste->prix_vente : null;
             }
 
             $newLineMap[] = [

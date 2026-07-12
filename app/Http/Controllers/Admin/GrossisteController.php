@@ -12,8 +12,10 @@ class GrossisteController extends Controller
 {
     public function index()
     {
-        $grossistes = Grossiste::with('prixProduits')->paginate(15);
-        return view('admin.grossistes.index', compact('grossistes'));
+        $grossistes = Grossiste::withCount('prixProduits')->orderBy('nom')->paginate(15);
+        $totalProduits = Produit::count();
+
+        return view('admin.grossistes.index', compact('grossistes', 'totalProduits'));
     }
 
     public function create()
@@ -29,10 +31,14 @@ class GrossisteController extends Controller
             'contact' => 'nullable|string|max:255',
         ]);
 
-        Grossiste::create($validated);
+        $grossiste = Grossiste::create($validated);
+
+        // À la création, le grossiste hérite du prix grossiste par défaut de TOUS
+        // les produits. L'admin pourra ensuite personnaliser certains tarifs.
+        $created = $grossiste->syncDefaultPrices();
 
         return redirect()->route('admin.grossistes.index')
-            ->with('success', 'Grossiste créé avec succès.');
+            ->with('success', "Grossiste créé. Tarifs par défaut appliqués à {$created} produit(s) — personnalisez-les via « Tarifs ».");
     }
 
     public function edit(Grossiste $grossiste)
@@ -63,20 +69,20 @@ class GrossisteController extends Controller
 
     public function pricing(Grossiste $grossiste)
     {
-        $produits = Produit::all();
-        $prixExistants = $grossiste->prixProduits()
-            ->pluck('prix_achat', 'produit_id')
-            ->merge($grossiste->prixProduits()->pluck('prix_vente', 'produit_id'))
-            ->toArray();
+        $produits = Produit::orderBy('nom')->get();
+        // Prix grossiste par défaut (lot ou prix client) pour pré-remplir.
+        $defauts = Grossiste::defaultPriceMap();
+        // Tarifs déjà personnalisés pour ce grossiste, indexés par produit.
+        $existants = $grossiste->prixProduits()->get()->keyBy('produit_id');
 
-        return view('admin.grossistes.pricing', compact('grossiste', 'produits'));
+        return view('admin.grossistes.pricing', compact('grossiste', 'produits', 'defauts', 'existants'));
     }
 
     public function updatePricing(Request $request, Grossiste $grossiste)
     {
-        $validated = $request->validate([
+        $request->validate([
             'prix.*.produit_id' => 'required|exists:produits,id',
-            'prix.*.prix_achat' => 'required|numeric|min:0',
+            'prix.*.prix_achat' => 'nullable|numeric|min:0',
             'prix.*.prix_vente' => 'required|numeric|min:0',
         ]);
 
@@ -87,7 +93,7 @@ class GrossisteController extends Controller
                     'produit_id' => $prix['produit_id'],
                 ],
                 [
-                    'prix_achat' => $prix['prix_achat'],
+                    'prix_achat' => $prix['prix_achat'] ?? 0,
                     'prix_vente' => $prix['prix_vente'],
                 ]
             );
