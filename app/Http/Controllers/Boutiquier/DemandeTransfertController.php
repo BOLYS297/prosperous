@@ -30,7 +30,16 @@ class DemandeTransfertController extends Controller
     public function create()
     {
         $produits = Produit::orderBy('nom')->get();
-        return view('boutiquier.transferts.create', compact('produits'));
+
+        // Stock disponible au(x) magasin(s) central(aux), agrégé par produit,
+        // pour éviter de demander plus que ce que le magasin possède.
+        $magasinIds = \App\Models\Boutique::where('type', 'magasin')->pluck('id');
+        $stockMagasin = Stock::whereIn('boutique_id', $magasinIds)
+            ->selectRaw('produit_id, SUM(quantite) as total')
+            ->groupBy('produit_id')
+            ->pluck('total', 'produit_id');
+
+        return view('boutiquier.transferts.create', compact('produits', 'stockMagasin'));
     }
 
     public function store(Request $request)
