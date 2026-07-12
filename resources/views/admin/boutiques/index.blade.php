@@ -53,12 +53,32 @@
                 </p>
             </div>
 
+            @php $avanceEncours = (float) ($avancesEnCours[$boutique->id] ?? 0); @endphp
+            @if($avanceEncours > 0)
+                <div class="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 flex items-center">
+                    <i class="ri-time-line mr-1.5 text-sm"></i> Avance en cours à rembourser : <strong class="ml-1">{{ number_format($avanceEncours, 0, ',', ' ') }} {{ param("currency") }}</strong>
+                </div>
+            @endif
+
             <a href="{{ route('admin.stocks.edit', $boutique) }}" class="mb-4 inline-flex items-center justify-center w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors font-medium">
                 <i class="ri-archive-line mr-2"></i> Gérer le stock
             </a>
 
             <form action="{{ route('admin.boutiques.crediter', $boutique) }}" method="POST" class="mt-auto space-y-3 border-t border-slate-200 pt-4">
                 @csrf
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Type d'approvisionnement</label>
+                    <div class="flex flex-col gap-1.5 text-sm text-slate-700">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="mode" value="simple" checked class="text-emerald-600 focus:ring-emerald-500">
+                            <span>Simple <span class="text-slate-400">(sans remboursement)</span></span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="mode" value="dette" class="text-amber-600 focus:ring-amber-500">
+                            <span>Avance <span class="text-slate-400">(à rembourser par la boutique)</span></span>
+                        </label>
+                    </div>
+                </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Montant à créditer ({{ param("currency") }})</label>
                     <input type="number" name="montant" min="1" step="1" required placeholder="Ex : 50000"

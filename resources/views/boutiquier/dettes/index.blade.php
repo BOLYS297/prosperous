@@ -97,5 +97,54 @@
             </div>
         </div>
     @endif
+
+    @if($avances->isNotEmpty())
+        <div class="glass-panel rounded-2xl overflow-hidden">
+            <div class="p-6 bg-amber-50/70 border-b border-amber-200/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-800"><i class="ri-hand-coin-line mr-1 text-amber-600"></i> Avances de caisse à rembourser</h3>
+                    <p class="text-sm text-slate-500">Avances accordées par l'administrateur, à rembourser progressivement depuis votre solde.</p>
+                </div>
+                <div class="text-right shrink-0">
+                    <div class="text-xs text-slate-500">Total restant</div>
+                    <div class="text-xl font-black text-amber-700">{{ number_format($avancesRestant, 0, ',', ' ') }} {{ param("currency") }}</div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider">
+                            <th class="p-4">Avance</th>
+                            <th class="p-4 text-center">Montant</th>
+                            <th class="p-4 text-center">Remboursé</th>
+                            <th class="p-4 text-center">Restant</th>
+                            <th class="p-4 text-center">Rembourser</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        @foreach($avances as $avance)
+                            <tr class="border-b border-slate-200 hover:bg-slate-50">
+                                <td class="p-4 font-medium text-slate-800">
+                                    {{ $avance->motif ?? 'Avance de caisse' }}
+                                    <div class="text-xs text-slate-400 mt-1">{{ $avance->created_at->format('d/m/Y') }} · {{ $avance->admin?->nom_utilisateur ?? 'Administrateur' }}</div>
+                                </td>
+                                <td class="p-4 text-center text-slate-600">{{ number_format($avance->montant, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                <td class="p-4 text-center text-emerald-700 font-semibold">{{ number_format($avance->montant_rembourse, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                <td class="p-4 text-center text-rose-700 font-semibold">{{ number_format($avance->reste_a_rembourser, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                <td class="p-4">
+                                    <form action="{{ route('boutiquier.avances.rembourser', $avance) }}" method="POST" data-offline-sync="true" class="space-y-3">
+                                        @csrf
+                                        <label class="block text-slate-600 text-sm">Montant à rembourser</label>
+                                        <input name="montant" type="number" min="1" step="0.01" max="{{ $avance->reste_a_rembourser }}" value="{{ min($boutique->solde ?? 0, $avance->reste_a_rembourser) }}" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 outline-none" required>
+                                        <button type="submit" class="w-full px-4 py-2 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 transition-colors">Rembourser</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 </div>
 @endsection
