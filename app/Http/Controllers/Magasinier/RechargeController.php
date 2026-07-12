@@ -38,7 +38,17 @@ class RechargeController extends Controller
             'lignes.*.quantite_recue' => 'nullable|integer|min:0',
         ]);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $recharge) {
+        $alreadyProcessed = false;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $recharge, &$alreadyProcessed) {
+            // Verrou + vérification atomique : une recharge ne peut être confirmée
+            // qu'une seule fois, même en cas de double-clic ou de rejeu hors-ligne.
+            $fresh = \App\Models\Recharge::where('id', $recharge->id)->lockForUpdate()->first();
+            if (! $fresh || $fresh->statut !== 'en_attente') {
+                $alreadyProcessed = true;
+                return;
+            }
+
             $this->saveJustificatifs($request, $recharge);
 
             if ($request->has('lignes')) {
@@ -60,8 +70,12 @@ class RechargeController extends Controller
             }
 
             // Stock update will be done by admin only
-            $recharge->update(['statut' => 'confirmee_par_magasinier']);
+            $fresh->update(['statut' => 'confirmee_par_magasinier']);
         });
+
+        if ($alreadyProcessed) {
+            return redirect()->route('magasinier.recharges.index')->with('error', 'Cette recharge a déjà été traitée.');
+        }
 
         $adminUsers = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
         if ($adminUsers->isNotEmpty()) {
@@ -105,7 +119,15 @@ class RechargeController extends Controller
             return redirect()->back()->withInput()->withErrors(['message' => 'Vous devez signaler une anomalie sur au moins un produit.']);
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $recharge) {
+        $alreadyProcessed = false;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $recharge, &$alreadyProcessed) {
+            $fresh = \App\Models\Recharge::where('id', $recharge->id)->lockForUpdate()->first();
+            if (! $fresh || $fresh->statut !== 'en_attente') {
+                $alreadyProcessed = true;
+                return;
+            }
+
             $this->saveJustificatifs($request, $recharge);
 
             if ($request->has('lignes')) {
@@ -125,11 +147,15 @@ class RechargeController extends Controller
                 }
             }
 
-            $recharge->update([
+            $fresh->update([
                 'statut' => 'anomalie',
                 'message_probleme' => $request->input('message'),
             ]);
         });
+
+        if ($alreadyProcessed) {
+            return redirect()->route('magasinier.recharges.index')->with('error', 'Cette recharge a déjà été traitée.');
+        }
 
         $adminUsers = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
         if ($adminUsers->isNotEmpty()) {

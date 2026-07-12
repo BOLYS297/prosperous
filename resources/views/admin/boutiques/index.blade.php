@@ -60,6 +60,10 @@
                 </div>
             @endif
 
+            <a href="{{ route('admin.stocks.edit', $boutique) }}" class="mb-4 inline-flex items-center justify-center w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors font-medium">
+                <i class="ri-archive-line mr-2"></i> Gérer le stock
+            </a>
+
             <form action="{{ route('admin.boutiques.crediter', $boutique) }}" method="POST" class="mt-auto space-y-3 border-t border-slate-200 pt-4">
                 @csrf
                 <div>

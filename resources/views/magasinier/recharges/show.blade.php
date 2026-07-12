@@ -22,6 +22,13 @@
 <div class="glass-panel p-6 rounded-2xl bg-white mb-6">
     <h3 class="font-semibold mb-4">Lignes</h3>
 
+    @if($recharge->statut !== 'en_attente')
+        <div class="mb-2 rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-800 text-sm flex items-center">
+            <i class="ri-information-line text-lg mr-2"></i>
+            Cette recharge a déjà été traitée (statut : <strong class="mx-1">{{ str_replace('_', ' ', $recharge->statut) }}</strong>). Aucune nouvelle action n'est possible.
+        </div>
+    @else
+
     <div class="mb-6 p-4 border rounded bg-slate-50">
         <div class="flex flex-col gap-3">
             <div class="flex flex-wrap items-center gap-2">
@@ -118,6 +125,7 @@
             <button type="submit" class="px-4 py-2 bg-rose-600 text-black rounded">Signaler un problème</button>
         </div>
     </form>
+    @endif
 </div>
 
 <script>

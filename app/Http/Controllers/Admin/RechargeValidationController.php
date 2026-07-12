@@ -27,75 +27,86 @@ class RechargeValidationController extends Controller
 
     public function valider(Request $request, \App\Models\Recharge $recharge)
     {
-        if (! in_array($recharge->statut, ['confirmee_par_magasinier', 'anomalie'])) {
-            return redirect()->route('admin.recharges.validation.index')->with('error', 'Cette recharge a déjà été traitée.');
-        }
+        $alreadyProcessed = false;
 
-        $recharge->load('lignes');
+        \Illuminate\Support\Facades\DB::transaction(function () use ($recharge, &$alreadyProcessed) {
+            // Verrou + vérification atomique : le stock n'est ajouté qu'une seule
+            // fois, même en cas de double-clic ou de double soumission.
+            $fresh = \App\Models\Recharge::where('id', $recharge->id)->lockForUpdate()->first();
+            if (! $fresh || ! in_array($fresh->statut, ['confirmee_par_magasinier', 'anomalie'])) {
+                $alreadyProcessed = true;
+                return;
+            }
 
-        \Illuminate\Support\Facades\Log::info('VALIDE_START', ['recharge_id' => $recharge->id, 'statut_before' => $recharge->statut]);
+            $fresh->load('lignes');
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($recharge) {
-            // Si c'est une anomalie, s'assurer que les lignes ont bien une valeur de quantite_recue
-            if ($recharge->statut === 'anomalie') {
-                foreach ($recharge->lignes as $ligne) {
+            // En cas d'anomalie, s'assurer que les lignes ont une quantite_recue cohérente.
+            if ($fresh->statut === 'anomalie') {
+                foreach ($fresh->lignes as $ligne) {
                     $recue = $ligne->quantite_recue ?? 0;
                     $ligne->update([
                         'quantite_recue' => $recue,
                         'quantite_manquante' => max(0, $ligne->quantite_envoyee - $recue),
                     ]);
                 }
-                // En cas d'anomalie approuvée, on enregistre uniquement les quantités réellement reçues
-                $this->updateStockForRecharge($recharge, false);
-            } else {
-                // Cas normal: enregistrer les quantités reçues transmises par le magasinier
-                $this->updateStockForRecharge($recharge, false);
             }
 
-            $recharge->update(['statut' => 'approuvee']);
-            \Illuminate\Support\Facades\Log::info('VALIDE_UPDATED', ['recharge_id' => $recharge->id, 'statut_after' => 'approuvee']);
+            // On enregistre les quantités réellement reçues.
+            $this->updateStockForRecharge($fresh, false);
+
+            $fresh->update(['statut' => 'approuvee']);
         });
 
-        $this->notifyBoutiqueForRecharge($recharge, 'Recharge approuvée', 'La recharge a été approuvée par l’administrateur et le stock a été mis à jour.', 'Voir la recharge', route('admin.recharges.validation.show', $recharge));
+        if ($alreadyProcessed) {
+            return redirect()->route('admin.recharges.validation.index')->with('error', 'Cette recharge a déjà été traitée.');
+        }
 
-        // Fallback: ensure statut persisted
-        \Illuminate\Support\Facades\DB::table('recharges')->where('id', $recharge->id)->update(['statut' => 'approuvee']);
+        $recharge->refresh();
+        $this->notifyBoutiqueForRecharge($recharge, 'Recharge approuvée', 'La recharge a été approuvée par l’administrateur et le stock a été mis à jour.', 'Voir la recharge', route('admin.recharges.validation.show', $recharge));
 
         return redirect()->route('admin.recharges.validation.index')->with('success', 'Recharge approuvée et stock mis à jour.');
     }
 
     public function rejeter(\App\Models\Recharge $recharge)
     {
-        if (! in_array($recharge->statut, ['confirmee_par_magasinier', 'anomalie'])) {
-            return redirect()->route('admin.recharges.validation.index')->with('error', 'Cette recharge a déjà été traitée.');
-        }
+        $alreadyProcessed = false;
 
-        $recharge->load('lignes');
+        \Illuminate\Support\Facades\DB::transaction(function () use ($recharge, &$alreadyProcessed) {
+            $fresh = \App\Models\Recharge::where('id', $recharge->id)->lockForUpdate()->first();
+            if (! $fresh || ! in_array($fresh->statut, ['confirmee_par_magasinier', 'anomalie'])) {
+                $alreadyProcessed = true;
+                return;
+            }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($recharge) {
+            $fresh->load('lignes');
+
             // Si l'anomalie est rejetée, on force la quantité reçue = quantité envoyée
             // et on annule la dette fournisseur (quantite_manquante = 0).
-            if ($recharge->statut === 'anomalie') {
-                foreach ($recharge->lignes as $ligne) {
+            if ($fresh->statut === 'anomalie') {
+                foreach ($fresh->lignes as $ligne) {
                     $ligne->update([
                         'quantite_recue' => $ligne->quantite_envoyee,
                         'quantite_manquante' => 0,
                     ]);
                 }
 
-                // Enregistrer le stock basé sur les quantités marquées reçues
-                $this->updateStockForRecharge($recharge, false);
+                $this->updateStockForRecharge($fresh, false);
             } else {
-                // Cas non-anomalie: enregistrer la quantité envoyée complète
-                $this->updateStockForRecharge($recharge, true);
+                // Cas non-anomalie : enregistrer la quantité envoyée complète.
+                $this->updateStockForRecharge($fresh, true);
             }
 
-            $recharge->update([
+            $fresh->update([
                 'statut' => 'rejetee',
                 'raison_rejet' => null,
             ]);
         });
 
+        if ($alreadyProcessed) {
+            return redirect()->route('admin.recharges.validation.index')->with('error', 'Cette recharge a déjà été traitée.');
+        }
+
+        $recharge->refresh();
         $this->notifyBoutiqueForRecharge($recharge, 'Recharge rejetée', 'La recharge a été rejetée par l’administrateur et le stock a été enregistré selon les quantités reçues.', 'Voir la recharge', route('admin.recharges.validation.show', $recharge));
 
         return redirect()->route('admin.recharges.validation.index')->with('success', 'Recharge rejetée et stock enregistrée.');
