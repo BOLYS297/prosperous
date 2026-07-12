@@ -35,15 +35,21 @@ class TransfertController extends Controller
         $demande = DemandeTransfert::findOrFail($id);
         $magasinId = Auth::user()->boutique_id;
 
-        if ($demande->statut !== 'en_attente') {
-            return back()->with('error', 'Cette demande a déjà été traitée.');
-        }
+        $alreadyProcessed = false;
 
         try {
-            DB::transaction(function () use ($demande, $request, $magasinId) {
-                \App\Models\Stock::consumeForSale($magasinId, $demande->produit_id, $request->quantite_expediee, null);
+            DB::transaction(function () use ($id, $demande, $request, $magasinId, &$alreadyProcessed) {
+                // Verrou + vérification atomique : une demande ne peut être
+                // expédiée (et déstocker le magasin) qu'une seule fois.
+                $fresh = DemandeTransfert::where('id', $id)->lockForUpdate()->first();
+                if (! $fresh || $fresh->statut !== 'en_attente') {
+                    $alreadyProcessed = true;
+                    return;
+                }
 
-                $demande->update([
+                \App\Models\Stock::consumeForSale($magasinId, $fresh->produit_id, $request->quantite_expediee, null);
+
+                $fresh->update([
                     'quantite_expediee' => $request->quantite_expediee,
                     'statut' => 'expediee',
                 ]);
@@ -52,7 +58,11 @@ class TransfertController extends Controller
             return back()->with('error', 'Stock insuffisant dans le magasin pour expédier cette quantité.');
         }
 
-        $demande->load(['produit', 'boutique']);
+        if ($alreadyProcessed) {
+            return back()->with('error', 'Cette demande a déjà été traitée.');
+        }
+
+        $demande->refresh()->load(['produit', 'boutique']);
 
         $boutiquiers = User::where('boutique_id', $demande->boutique_id)
             ->where('role', 'boutiquier')
