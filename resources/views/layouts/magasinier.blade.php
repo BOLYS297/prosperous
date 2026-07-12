@@ -108,22 +108,6 @@
                             <span class="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ $asideRechargeCount }}</span>
                         @endif
                     </a>
-
-                    @if($asideRecharges->isNotEmpty())
-                        <div class="mt-3 ml-12 mr-4 space-y-2 text-sm">
-                            @foreach($asideRecharges as $r)
-                                <a href="{{ route('magasinier.recharges.show', $r) }}" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">
-                                    <div class="font-semibold">#{{ $r->id }} <span class="text-xs text-slate-400">{{ $r->created_at->format('d/m') }}</span></div>
-                                    <div class="text-xs text-slate-500">
-                                        @foreach($r->lignes->take(2) as $l)
-                                            {{ $l->produit?->nom ?? 'Produit supprimé' }}@if($l->produit && $l->produit->reference) ({{ $l->produit->reference }})@endif × {{ $l->quantite_envoyee }}@if(! $loop->last), @endif
-                                        @endforeach
-                                        @if($r->lignes->count() > 2) ... @endif
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
                 </nav>
 
             <!-- Footer - Fixed -->

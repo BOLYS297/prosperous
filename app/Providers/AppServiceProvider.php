@@ -31,23 +31,18 @@ class AppServiceProvider extends ServiceProvider
                 return DemandeTransfert::where('statut', 'en_attente')->count();
             });
 
-            $asideRecharges = collect();
             $asideRechargeCount = 0;
 
             if (Auth::check() && Auth::user()->boutique) {
                 $boutiqueId = Auth::user()->boutique->id;
-                $asideRecharges = cache()->remember("magasinier_aside_recharges_{$boutiqueId}", 30, function () use ($boutiqueId) {
-                    return Recharge::with(['lignes.produit', 'fournisseur'])
-                        ->where('destination_id', $boutiqueId)
+                $asideRechargeCount = cache()->remember("magasinier_aside_recharge_count_{$boutiqueId}", 30, function () use ($boutiqueId) {
+                    return Recharge::where('destination_id', $boutiqueId)
                         ->where('statut', 'en_attente')
-                        ->orderBy('created_at', 'desc')
-                        ->limit(5)
-                        ->get();
+                        ->count();
                 });
-                $asideRechargeCount = $asideRecharges->count();
             }
 
-            $view->with(compact('pendingRequestsCount', 'asideRecharges', 'asideRechargeCount'));
+            $view->with(compact('pendingRequestsCount', 'asideRechargeCount'));
         });
     }
 }
