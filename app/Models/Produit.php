@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Produit extends Model
 {
-    protected $fillable = ['nom', 'reference', 'prix_achat', 'prix_vente', 'image'];
+    protected $fillable = ['nom', 'reference', 'prix_achat', 'prix_vente', 'prix_vente_grossiste', 'image'];
 
     public function stocks()
     {
@@ -49,11 +49,16 @@ class Produit extends Model
     }
 
     /**
-     * Prix de vente GROSSISTE du lot actif (le plus ancien en stock) — suit le FIFO.
-     * Retourne null si aucun lot ou aucun prix grossiste défini.
+     * Prix de vente GROSSISTE par défaut du produit.
+     * Priorité : valeur définie sur le produit (colonne), sinon prix grossiste
+     * du lot actif le plus ancien (défini à l'achat). Null si rien n'est défini.
      */
-    public function getPrixVenteGrossisteAttribute()
+    public function getPrixVenteGrossisteAttribute($value)
     {
+        if ($value !== null && $value !== '') {
+            return (float) $value;
+        }
+
         $activeStock = $this->stocks()
             ->where('quantite', '>', 0)
             ->orderBy('created_at')

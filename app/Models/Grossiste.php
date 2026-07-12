@@ -32,19 +32,15 @@ class Grossiste extends Model
      */
     public static function defaultPriceMap(): array
     {
-        $lotGrossiste = Stock::query()
-            ->where('quantite', '>', 0)
-            ->whereNotNull('prix_vente_grossiste_unitaire')
-            ->where('prix_vente_grossiste_unitaire', '>', 0)
-            ->orderBy('created_at')
-            ->get(['produit_id', 'prix_vente_grossiste_unitaire'])
-            ->groupBy('produit_id')
-            ->map(fn ($lots) => (float) $lots->first()->prix_vente_grossiste_unitaire);
-
         $map = [];
-        foreach (Produit::all() as $produit) {
-            $map[$produit->id] = $lotGrossiste[$produit->id]
-                ?? (float) ($produit->getRawOriginal('prix_vente') ?? 0);
+
+        // Prix grossiste par défaut = prix grossiste défini sur le produit,
+        // sinon repli sur le prix de vente client.
+        foreach (Produit::all(['id', 'prix_vente', 'prix_vente_grossiste']) as $produit) {
+            $base = $produit->getRawOriginal('prix_vente_grossiste');
+            $map[$produit->id] = ($base !== null && (float) $base > 0)
+                ? (float) $base
+                : (float) ($produit->getRawOriginal('prix_vente') ?? 0);
         }
 
         return $map;

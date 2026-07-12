@@ -59,20 +59,28 @@ class VenteController extends Controller
                     throw new \Exception('Quantité invalide pour le produit ' . $produit->nom);
                 }
 
-                // Override grossiste OPTIONNEL : un tarif spécifique défini pour CE grossiste
-                // (table PrixGrossiste) écrase le prix grossiste du lot.
-                $prixGrossisteOverride = null;
+                // Prix grossiste FIXE : tarif spécifique de CE grossiste (override), sinon
+                // prix grossiste PAR DÉFAUT du produit. Il s'applique à toute la ligne.
+                $grossisteFixedPrice = null;
                 if ($isGrossiste) {
-                    $prixGrossisteOverride = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
+                    $override = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
                         ->where('produit_id', $produit->id)
                         ->first();
+                    if ($override && (float) $override->prix_vente > 0) {
+                        $grossisteFixedPrice = (float) $override->prix_vente;
+                    } else {
+                        $base = $produit->getRawOriginal('prix_vente_grossiste');
+                        if ($base !== null && (float) $base > 0) {
+                            $grossisteFixedPrice = (float) $base;
+                        }
+                    }
                 }
 
                 $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $produit->id, $quantite, $isGrossiste ? null : $produit->prix_vente);
 
-                if ($isGrossiste && $prixGrossisteOverride && (float) $prixGrossisteOverride->prix_vente > 0) {
-                    // Tarif grossiste spécifique : une seule ligne au prix du grossiste.
-                    $unitPrice = (float) $prixGrossisteOverride->prix_vente;
+                if ($isGrossiste && $grossisteFixedPrice !== null) {
+                    // Vente grossiste : prix unique (tarif spécifique OU prix grossiste par défaut).
+                    $unitPrice = $grossisteFixedPrice;
                     $total += $unitPrice * $quantite;
 
                     \App\Models\VenteLigne::create([
@@ -228,13 +236,21 @@ class VenteController extends Controller
                 return back()->with('error', 'Produit introuvable.');
             }
 
-            // Override grossiste OPTIONNEL (tarif spécifique du grossiste) ; sinon prix du lot.
+            // Prix grossiste FIXE : tarif spécifique de CE grossiste (override), sinon
+            // prix grossiste PAR DÉFAUT du produit.
             $grossisteOverride = null;
             if ($isGrossiste) {
                 $prixGrossiste = \App\Models\PrixGrossiste::where('grossiste_id', $grossisteId)
                     ->where('produit_id', $produit->id)
                     ->first();
-                $grossisteOverride = ($prixGrossiste && (float) $prixGrossiste->prix_vente > 0) ? (float) $prixGrossiste->prix_vente : null;
+                if ($prixGrossiste && (float) $prixGrossiste->prix_vente > 0) {
+                    $grossisteOverride = (float) $prixGrossiste->prix_vente;
+                } else {
+                    $base = $produit->getRawOriginal('prix_vente_grossiste');
+                    if ($base !== null && (float) $base > 0) {
+                        $grossisteOverride = (float) $base;
+                    }
+                }
             }
 
             $newLineMap[] = [

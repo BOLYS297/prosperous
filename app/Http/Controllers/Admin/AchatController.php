@@ -126,6 +126,9 @@ class AchatController extends Controller
                         if (isset($ligne['prix_vente']) && $ligne['prix_vente'] !== null && $ligne['prix_vente'] !== '') {
                             $produit->prix_vente = $ligne['prix_vente'];
                         }
+                        if (isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== null && $ligne['prix_vente_grossiste'] !== '') {
+                            $produit->prix_vente_grossiste = $ligne['prix_vente_grossiste'];
+                        }
                         $produit->save();
                     }
                 } catch (\Throwable $e) {
@@ -352,6 +355,9 @@ class AchatController extends Controller
                         $produit->prix_achat = $ligne['prix_unitaire'];
                         if (isset($ligne['prix_vente']) && $ligne['prix_vente'] !== null && $ligne['prix_vente'] !== '') {
                             $produit->prix_vente = $ligne['prix_vente'];
+                        }
+                        if (isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== null && $ligne['prix_vente_grossiste'] !== '') {
+                            $produit->prix_vente_grossiste = $ligne['prix_vente_grossiste'];
                         }
                         $produit->save();
                     }
