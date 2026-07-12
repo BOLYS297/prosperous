@@ -72,38 +72,20 @@
             </div>
         </div>
 
-        @if(isset($grossistes) && $grossistes->isNotEmpty())
-            <div class="mb-8 p-6 rounded-2xl border border-slate-200 bg-slate-50">
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Tarifs pour grossistes</h3>
-                <div class="grid gap-4">
-                    @foreach($grossistes as $grossiste)
-                        @php
-                            $prixProfil = old('prix_grossiste.' . $loop->index . '.prix_vente') !== null
-                                ? (object) [
-                                    'prix_achat' => old('prix_grossiste.' . $loop->index . '.prix_achat'),
-                                    'prix_vente' => old('prix_grossiste.' . $loop->index . '.prix_vente'),
-                                ]
-                                : $produit->prixGrossistes->firstWhere('grossiste_id', $grossiste->id);
-                        @endphp
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end p-4 rounded-xl border border-slate-200 bg-white">
-                            <div class="md:col-span-1">
-                                <div class="text-sm font-medium text-slate-700">{{ $grossiste->nom }} <span class="text-slate-400">({{ $grossiste->code }})</span></div>
-                            </div>
-                            <input type="hidden" name="prix_grossiste[{{ $loop->index }}][grossiste_id]" value="{{ $grossiste->id }}">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Prix d'achat</label>
-                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_achat]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_achat', $prixProfil?->prix_achat ?? $produit->prix_achat ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="{{ param("currency") }}">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente grossiste</label>
-                                <input type="number" step="0.01" name="prix_grossiste[{{ $loop->index }}][prix_vente]" value="{{ old('prix_grossiste.' . $loop->index . '.prix_vente', $prixProfil?->prix_vente ?? '') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="{{ param("currency") }}">
-                            </div>
-                        </div>
-                    @endforeach
+        <div class="mb-8">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente grossiste par défaut ({{ param("currency") }})</label>
+            <div class="relative max-w-xs">
+                <input type="number" step="0.01" min="0" name="prix_vente_grossiste" value="{{ old('prix_vente_grossiste', $produit->prix_vente_grossiste ?? '') }}" class="w-full pl-4 pr-16 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optionnel">
+                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
+                    {{ param("currency") }}
                 </div>
-                <p class="text-xs text-slate-500 mt-4">Laissez vide si vous ne souhaitez pas encore définir un tarif pour ce grossiste.</p>
             </div>
-        @endif
+            <p class="text-xs text-slate-500 mt-2">
+                Prix grossiste par défaut du produit, appliqué à toutes les ventes grossistes.
+                Les <strong>tarifs spécifiques à chaque grossiste</strong> se définissent dans <strong>Grossistes → Tarifs</strong>.
+                Laissez vide pour utiliser le prix de vente client.
+            </p>
+        </div>
 
         <div class="flex justify-end">
             <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg transform hover:-translate-y-0.5">

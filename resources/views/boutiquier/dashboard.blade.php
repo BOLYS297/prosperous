@@ -283,7 +283,7 @@
                 // Prix grossiste du lot actif (le plus ancien en stock) — utilisé par le point de vente
                 $lotActifGrossiste = optional($produit->stocks->where('quantite', '>', 0)->sortBy('created_at')->first())->prix_vente_grossiste_unitaire;
             @endphp
-            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-grossiste-price="{{ $lotActifGrossiste ?? '' }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
+            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-grossiste-price="{{ $produit->getRawOriginal('prix_vente_grossiste') ?? $lotActifGrossiste ?? '' }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
                 <div class="flex-1">
                     @if($produit->image)
                         <img src="{{ asset('storage/' . $produit->image) }}" alt="{{ $produit->nom }}" class="object-cover rounded-2xl mb-4 w-50 h-40" style="max-height: 12rem;">

@@ -136,9 +136,12 @@
             'prix_client' => $lotActif && $lotActif->prix_vente_unitaire !== null
                 ? (float) $lotActif->prix_vente_unitaire
                 : (float) ($p->getRawOriginal('prix_vente') ?? 0),
-            'prix_grossiste_lot' => $lotActif && $lotActif->prix_vente_grossiste_unitaire !== null
-                ? (float) $lotActif->prix_vente_grossiste_unitaire
-                : null,
+            // Prix grossiste par défaut : valeur du produit, sinon prix grossiste du lot.
+            'prix_grossiste_lot' => $p->getRawOriginal('prix_vente_grossiste') !== null
+                ? (float) $p->getRawOriginal('prix_vente_grossiste')
+                : ($lotActif && $lotActif->prix_vente_grossiste_unitaire !== null
+                    ? (float) $lotActif->prix_vente_grossiste_unitaire
+                    : null),
         ];
     })->values();
 
