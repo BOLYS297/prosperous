@@ -176,19 +176,25 @@
 
         if (isGrossisteSale()) {
             const g = EDIT_GROSSISTES.find((x) => String(x.id) === String(selectedGrossisteId()));
-            // 1) Prix négocié pour CE grossiste (override)
-            if (g && g.prix && g.prix[produitId] !== undefined && g.prix[produitId] !== null) {
-                return { price: parseFloat(g.prix[produitId]) || 0, available: true, stock: p.stock, note: 'Tarif ' + g.nom };
+
+            // Prix grossiste PAR DÉFAUT du produit : prix grossiste du lot, sinon prix client.
+            const defaultGrossiste = (p.prix_grossiste_lot !== null && p.prix_grossiste_lot > 0)
+                ? parseFloat(p.prix_grossiste_lot)
+                : (parseFloat(p.prix_client) || 0);
+
+            // 1) Tarif SPÉCIFIQUE de ce grossiste (override) s'il est défini et > 0
+            const override = (g && g.prix) ? parseFloat(g.prix[produitId]) : NaN;
+            if (!isNaN(override) && override > 0) {
+                return { price: override, available: true, stock: p.stock, note: 'Tarif ' + g.nom };
             }
-            // 2) Prix grossiste défini sur le lot (FIFO)
-            if (p.prix_grossiste_lot !== null && p.prix_grossiste_lot > 0) {
-                return { price: parseFloat(p.prix_grossiste_lot) || 0, available: true, stock: p.stock, note: 'Prix grossiste du lot' };
-            }
-            // 3) Aucun prix grossiste disponible
-            if (!g) {
-                return { price: 0, available: false, stock: p.stock, note: 'Sélectionnez un grossiste' };
-            }
-            return { price: 0, available: false, stock: p.stock, note: 'Aucun prix grossiste défini' };
+
+            // 2) Sinon, prix grossiste par défaut (toujours disponible)
+            return {
+                price: defaultGrossiste,
+                available: true,
+                stock: p.stock,
+                note: g ? 'Prix grossiste par défaut (aucun tarif spécifique pour ' + g.nom + ')' : 'Prix grossiste par défaut',
+            };
         }
 
         return { price: parseFloat(p.prix_client) || 0, available: true, stock: p.stock, note: 'Prix client' };

@@ -22,7 +22,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Nom</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Code</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Contact</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Nb Produits</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Produits tarifés</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                 </tr>
             </thead>
@@ -34,7 +34,10 @@
                             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-mono">{{ $grossiste->code }}</span>
                         </td>
                         <td class="px-6 py-4">{{ $grossiste->contact ?? '-' }}</td>
-                        <td class="px-6 py-4 text-center">{{ $grossiste->prixProduits->count() }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="font-semibold text-slate-800">{{ $grossiste->prix_produits_count }}</span>
+                            <span class="text-slate-400 text-sm">/ {{ $totalProduits }}</span>
+                        </td>
                         <td class="px-6 py-4 space-x-2">
                             <a href="{{ route('admin.grossistes.pricing', $grossiste) }}" class="bg-purple-600 hover:bg-purple-700 text-black font-bold py-1 px-3 rounded text-sm">
                                 Tarifs
