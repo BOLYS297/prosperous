@@ -66,6 +66,10 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::post('boutiques/{boutique}/crediter', [\App\Http\Controllers\Admin\BoutiqueController::class, 'crediter'])->name('boutiques.crediter');
         Route::put('boutiques/{boutique}', [\App\Http\Controllers\Admin\BoutiqueController::class, 'update'])->name('boutiques.update');
 
+        // Ajustement manuel du stock d'une boutique / d'un magasin
+        Route::get('boutiques/{boutique}/stock', [\App\Http\Controllers\Admin\StockController::class, 'edit'])->name('stocks.edit');
+        Route::put('boutiques/{boutique}/stock', [\App\Http\Controllers\Admin\StockController::class, 'update'])->name('stocks.update');
+
         // Paramètres de l'entreprise (nom, immatriculation, devise, logo, bannière...)
         Route::get('parametres', [\App\Http\Controllers\Admin\SettingsController::class, 'edit'])->name('parametres.edit');
         Route::put('parametres', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('parametres.update');
