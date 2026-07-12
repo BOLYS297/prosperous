@@ -32,7 +32,83 @@ class DetteController extends Controller
 
         $montantTotalRestant = $dettes->sum(fn(Achat $achat) => $achat->reste_a_payer);
 
-        return view('boutiquier.dettes.index', compact('boutique', 'dettes', 'montantTotalRestant'));
+        // Avances de caisse en cours (à rembourser par cette boutique).
+        $avances = \App\Models\AvanceCaisse::with('admin')
+            ->where('boutique_id', $boutiqueId)
+            ->where('statut', 'en_cours')
+            ->orderBy('created_at')
+            ->get();
+
+        $avancesRestant = $avances->sum(fn($a) => $a->reste_a_rembourser);
+
+        return view('boutiquier.dettes.index', compact('boutique', 'dettes', 'montantTotalRestant', 'avances', 'avancesRestant'));
+    }
+
+    /**
+     * Remboursement partiel d'une avance de caisse depuis le solde de la boutique.
+     * Le remboursement se fait progressivement selon la trésorerie disponible.
+     */
+    public function rembourserAvance(Request $request, \App\Models\AvanceCaisse $avance)
+    {
+        $boutique = Auth::user()->boutique;
+        if (! $boutique || (int) $avance->boutique_id !== (int) $boutique->id) {
+            return back()->with('error', 'Cette avance ne concerne pas votre boutique.');
+        }
+
+        if ($avance->statut !== 'en_cours') {
+            return back()->with('error', 'Cette avance est déjà entièrement remboursée.');
+        }
+
+        $request->validate([
+            'montant' => 'required|numeric|min:1',
+        ]);
+
+        $montant = round($request->input('montant'), 2);
+
+        $alreadyDone = false;
+        $tropGrand = false;
+        $soldeInsuffisant = false;
+
+        DB::transaction(function () use ($avance, $boutique, $montant, &$alreadyDone, &$tropGrand, &$soldeInsuffisant) {
+            // Verrous : remboursement atomique (pas de double décrément du solde).
+            $fresh = \App\Models\AvanceCaisse::where('id', $avance->id)->lockForUpdate()->first();
+            $b = \App\Models\Boutique::where('id', $boutique->id)->lockForUpdate()->first();
+
+            if (! $fresh || $fresh->statut !== 'en_cours') {
+                $alreadyDone = true;
+                return;
+            }
+
+            if ($montant > $fresh->reste_a_rembourser) {
+                $tropGrand = true;
+                return;
+            }
+
+            if ($montant > (float) $b->solde) {
+                $soldeInsuffisant = true;
+                return;
+            }
+
+            $b->decrement('solde', $montant);
+            $fresh->increment('montant_rembourse', $montant);
+
+            $fresh->refresh();
+            if ($fresh->reste_a_rembourser <= 0) {
+                $fresh->update(['statut' => 'remboursee']);
+            }
+        });
+
+        if ($alreadyDone) {
+            return back()->with('error', 'Cette avance est déjà entièrement remboursée.');
+        }
+        if ($tropGrand) {
+            return back()->with('error', 'Le montant saisi dépasse le reste à rembourser.');
+        }
+        if ($soldeInsuffisant) {
+            return back()->with('error', 'Solde insuffisant pour ce remboursement.');
+        }
+
+        return back()->with('success', 'Remboursement de ' . money_format_app($montant) . ' enregistré.');
     }
 
     public function payer(Request $request, Achat $achat)

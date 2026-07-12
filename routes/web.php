@@ -136,6 +136,7 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
 
         Route::get('/dettes', [\App\Http\Controllers\Boutiquier\DetteController::class, 'index'])->name('dettes.index');
         Route::post('/dettes/{achat}/payer', [\App\Http\Controllers\Boutiquier\DetteController::class, 'payer'])->name('dettes.payer');
+        Route::post('/avances/{avance}/rembourser', [\App\Http\Controllers\Boutiquier\DetteController::class, 'rembourserAvance'])->name('avances.rembourser');
 
         Route::get('/depenses/create', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'create'])->name('depenses.create');
         Route::post('/depenses', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'store'])->name('depenses.store');
