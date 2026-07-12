@@ -42,6 +42,10 @@ docker compose exec -T app php artisan migrate --force
 # Lien public/storage -> storage/app/public (images logo/bannière téléversées).
 # Recréé à chaque déploiement car public/ n'est pas un volume persistant.
 docker compose exec -T app php artisan storage:link || true
+# Prix grossiste par défaut pour les produits qui n'en ont pas encore chez
+# chaque grossiste (n'écrase jamais un tarif personnalisé). Couvre les
+# nouveaux produits automatiquement à chaque déploiement.
+docker compose exec -T app php artisan grossistes:sync-default-prices || true
 docker compose exec -T app php artisan config:cache
 docker compose exec -T app php artisan route:cache
 docker compose exec -T app php artisan view:cache
