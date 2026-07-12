@@ -588,6 +588,14 @@ $tarifs = [
                     ['grossiste_id' => $grossiste->id, 'produit_id' => $produit->id],
                     ['prix_achat' => $prixData['prix_achat'], 'prix_vente' => $prixData['prix_vente']]
                 );
+
+                // Ce prix grossiste devient aussi le prix grossiste PAR DÉFAUT du produit
+                // (utilisé au point de vente quand aucun grossiste n'est sélectionné),
+                // s'il n'en a pas déjà un. Le premier grossiste traité fait foi.
+                if (($prixData['prix_vente'] ?? 0) > 0 && $produit->getRawOriginal('prix_vente_grossiste') === null) {
+                    $produit->prix_vente_grossiste = $prixData['prix_vente'];
+                    $produit->save();
+                }
             }
         }
     }
