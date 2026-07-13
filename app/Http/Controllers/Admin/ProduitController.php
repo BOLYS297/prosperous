@@ -13,17 +13,43 @@ class ProduitController extends Controller
     public function index(Request $request)
     {
         $q = trim($request->query('q', ''));
+        $filter = $request->query('filter', '');
 
-        $produits = Produit::with(['stocks.boutique'])->when($q, function ($query) use ($q) {
-            $query->where('nom', 'like', "%{$q}%")
-                ->orWhere('reference', 'like', "%{$q}%")
-                ->orWhere('prix_achat', 'like', "%{$q}%")
-                ->orWhere('prix_vente', 'like', "%{$q}%");
-        })
+        // Closures de détection des champs manquants (sur les colonnes brutes).
+        $sansPrixVente = fn ($w) => $w->whereNull('prix_vente')->orWhere('prix_vente', '<=', 0);
+        $sansGrossiste = fn ($w) => $w->whereNull('prix_vente_grossiste')->orWhere('prix_vente_grossiste', '<=', 0);
+        $sansReference = fn ($w) => $w->whereNull('reference')->orWhere('reference', '');
+        $incomplet = function ($w) {
+            $w->whereNull('prix_vente')->orWhere('prix_vente', '<=', 0)
+                ->orWhereNull('prix_vente_grossiste')->orWhere('prix_vente_grossiste', '<=', 0)
+                ->orWhereNull('reference')->orWhere('reference', '');
+        };
+
+        $produits = Produit::with(['stocks.boutique'])
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('nom', 'like', "%{$q}%")
+                        ->orWhere('reference', 'like', "%{$q}%")
+                        ->orWhere('prix_achat', 'like', "%{$q}%")
+                        ->orWhere('prix_vente', 'like', "%{$q}%");
+                });
+            })
+            ->when($filter === 'sans_prix_vente', fn ($query) => $query->where($sansPrixVente))
+            ->when($filter === 'sans_prix_grossiste', fn ($query) => $query->where($sansGrossiste))
+            ->when($filter === 'sans_reference', fn ($query) => $query->where($sansReference))
+            ->when($filter === 'incomplets', fn ($query) => $query->where($incomplet))
             ->orderBy('nom')
             ->get();
 
-        return view('admin.produits.index', compact('produits', 'q'));
+        // Compteurs globaux pour les pastilles de filtre.
+        $counts = [
+            'sans_prix_vente' => Produit::where($sansPrixVente)->count(),
+            'sans_prix_grossiste' => Produit::where($sansGrossiste)->count(),
+            'sans_reference' => Produit::where($sansReference)->count(),
+            'incomplets' => Produit::where($incomplet)->count(),
+        ];
+
+        return view('admin.produits.index', compact('produits', 'q', 'filter', 'counts'));
     }
 
     public function create()

@@ -21,6 +21,7 @@
 <div class="glass-panel rounded-2xl overflow-hidden">
     <div class="p-6 border-b border-white/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <form action="{{ route('admin.produits.index') }}" method="GET" class="flex-1 min-w-0">
+            <input type="hidden" name="filter" value="{{ $filter }}">
             <label for="q" class="sr-only">Recherche produit</label>
             <div class="relative w-full">
                 <input id="q" name="q" type="text" value="{{ old('q', $q ?? '') }}" autocomplete="off" data-instant-search="#produits-tbody" data-instant-search-empty="#produits-empty" placeholder="Rechercher un produit..." class="w-full pl-10 pr-4 py-3 rounded-2xl bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" />
@@ -28,8 +29,30 @@
             </div>
         </form>
         <div class="text-sm text-slate-500">
-            Total : <span class="font-bold text-slate-800">{{ $produits->count() }}</span> produits
+            {{ $filter ? 'Affichés' : 'Total' }} : <span class="font-bold text-slate-800">{{ $produits->count() }}</span> produits
         </div>
+    </div>
+
+    <div class="px-6 py-4 border-b border-white/40 flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold text-slate-500 mr-1"><i class="ri-filter-3-line mr-1"></i>Filtrer :</span>
+        @php
+            $filterOptions = [
+                '' => ['label' => 'Tous', 'count' => null],
+                'incomplets' => ['label' => 'Incomplets', 'count' => $counts['incomplets']],
+                'sans_prix_vente' => ['label' => 'Prix de vente manquant', 'count' => $counts['sans_prix_vente']],
+                'sans_prix_grossiste' => ['label' => 'Prix grossiste manquant', 'count' => $counts['sans_prix_grossiste']],
+                'sans_reference' => ['label' => 'Référence manquante', 'count' => $counts['sans_reference']],
+            ];
+        @endphp
+        @foreach($filterOptions as $key => $opt)
+            <a href="{{ route('admin.produits.index', array_filter(['filter' => $key, 'q' => $q], fn ($v) => $v !== '' && $v !== null)) }}"
+               class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors {{ $filter === $key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50' }}">
+                {{ $opt['label'] }}
+                @if($opt['count'] !== null && $opt['count'] > 0)
+                    <span class="inline-flex items-center justify-center rounded-full px-1.5 min-w-[1.25rem] {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-rose-100 text-rose-700' }}">{{ $opt['count'] }}</span>
+                @endif
+            </a>
+        @endforeach
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -46,7 +69,15 @@
             </thead>
             <tbody id="produits-tbody" class="text-sm">
                 @forelse($produits as $produit)
-                    <tr data-search="{{ \Illuminate\Support\Str::lower($produit->nom . ' ' . $produit->reference) }}" class="border-b border-white/20 hover:bg-white/30 transition-colors">
+                    @php
+                        $baseVente = $produit->getRawOriginal('prix_vente');
+                        $baseGrossiste = $produit->getRawOriginal('prix_vente_grossiste');
+                        $missVente = $baseVente === null || (float) $baseVente <= 0;
+                        $missGrossiste = $baseGrossiste === null || (float) $baseGrossiste <= 0;
+                        $missRef = trim((string) $produit->reference) === '';
+                        $rowIncomplet = $missVente || $missGrossiste || $missRef;
+                    @endphp
+                    <tr data-search="{{ \Illuminate\Support\Str::lower($produit->nom . ' ' . $produit->reference) }}" class="border-b border-white/20 hover:bg-white/30 transition-colors {{ $rowIncomplet ? 'bg-rose-50/60' : '' }}">
                         <td class="p-4">
                             @if($produit->image)
                                 <img src="{{ asset('storage/' . $produit->image) }}" class="h-10 w-10 object-cover rounded-lg shadow-sm border border-white/50" alt="{{ $produit->nom }}">
@@ -58,6 +89,19 @@
                         </td>
                         <td class="p-4 font-bold text-slate-800">
                             {{ $produit->nom }}
+                            @if($rowIncomplet)
+                                <div class="mt-1 flex flex-wrap gap-1">
+                                    @if($missVente)
+                                        <span class="inline-flex items-center rounded-full bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-semibold"><i class="ri-error-warning-line mr-1"></i>Prix de vente manquant</span>
+                                    @endif
+                                    @if($missGrossiste)
+                                        <span class="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold"><i class="ri-error-warning-line mr-1"></i>Prix grossiste manquant</span>
+                                    @endif
+                                    @if($missRef)
+                                        <span class="inline-flex items-center rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-[10px] font-semibold"><i class="ri-error-warning-line mr-1"></i>Référence manquante</span>
+                                    @endif
+                                </div>
+                            @endif
                         </td>
                         <td class="p-4 text-slate-700 text-sm">
                             @if($produit->reference)
