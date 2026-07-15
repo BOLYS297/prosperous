@@ -41,6 +41,16 @@
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Intitulé <span class="text-red-500">*</span></label>
+                <input type="text" name="intitule" maxlength="255" value="{{ old('intitule', 'Dépense administrative') }}" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Achat de carburant" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                <textarea name="description" rows="3" maxlength="1000" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Précisez le motif de la dépense (facultatif)">{{ old('description') }}</textarea>
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">Montant ({{ param("currency") }}) <span class="text-red-500">*</span></label>
                 <input type="number" step="0.01" name="montant" value="{{ old('montant') }}" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: 10000" required>
             </div>

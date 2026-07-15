@@ -58,8 +58,12 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::get('grossistes/{grossiste}/pricing', [\App\Http\Controllers\Admin\GrossisteController::class, 'pricing'])->name('grossistes.pricing');
         Route::post('grossistes/{grossiste}/pricing', [\App\Http\Controllers\Admin\GrossisteController::class, 'updatePricing'])->name('grossistes.pricing.update');
         Route::resource('achats', \App\Http\Controllers\Admin\AchatController::class);
+        Route::get('depenses', [\App\Http\Controllers\Admin\DepenseController::class, 'index'])->name('depenses.index');
         Route::get('depenses/create', [\App\Http\Controllers\Admin\DepenseController::class, 'create'])->name('depenses.create');
         Route::post('depenses', [\App\Http\Controllers\Admin\DepenseController::class, 'store'])->name('depenses.store');
+        Route::get('depenses/{depense}/edit', [\App\Http\Controllers\Admin\DepenseController::class, 'edit'])->name('depenses.edit');
+        Route::put('depenses/{depense}', [\App\Http\Controllers\Admin\DepenseController::class, 'update'])->name('depenses.update');
+        Route::delete('depenses/{depense}', [\App\Http\Controllers\Admin\DepenseController::class, 'destroy'])->name('depenses.destroy');
 
         // Boutiques / Trésorerie : approvisionnement du solde
         Route::get('boutiques', [\App\Http\Controllers\Admin\BoutiqueController::class, 'index'])->name('boutiques.index');
@@ -142,8 +146,12 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::post('/dettes/{achat}/payer', [\App\Http\Controllers\Boutiquier\DetteController::class, 'payer'])->name('dettes.payer');
         Route::post('/avances/{avance}/rembourser', [\App\Http\Controllers\Boutiquier\DetteController::class, 'rembourserAvance'])->name('avances.rembourser');
 
+        Route::get('/depenses', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'index'])->name('depenses.index');
         Route::get('/depenses/create', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'create'])->name('depenses.create');
         Route::post('/depenses', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'store'])->name('depenses.store');
+        Route::get('/depenses/{depense}/edit', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'edit'])->name('depenses.edit');
+        Route::put('/depenses/{depense}', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'update'])->name('depenses.update');
+        Route::delete('/depenses/{depense}', [\App\Http\Controllers\Boutiquier\DepenseController::class, 'destroy'])->name('depenses.destroy');
 
         // Validation des débits admin (achat comptant / dépense administrative)
         Route::post('/validations/{validation}/confirmer', [\App\Http\Controllers\Boutiquier\DebitValidationController::class, 'confirmer'])->name('validations.confirmer');
