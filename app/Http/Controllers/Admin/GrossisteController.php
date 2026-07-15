@@ -80,7 +80,10 @@ class GrossisteController extends Controller
 
     public function updatePricing(Request $request, Grossiste $grossiste)
     {
+        // Seules les lignes MODIFIÉES sont envoyées (cf. vue) : le tableau peut
+        // être vide et les index sont volontairement discontinus.
         $request->validate([
+            'prix' => 'nullable|array',
             'prix.*.produit_id' => 'required|exists:produits,id',
             'prix.*.prix_achat' => 'nullable|numeric|min:0',
             'prix.*.prix_vente' => 'required|numeric|min:0',

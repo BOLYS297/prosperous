@@ -122,6 +122,42 @@
         inputs.forEach(function (input) {
             input.addEventListener('input', updateChanged);
         });
+
+        // On n'envoie QUE les lignes réellement modifiées : un formulaire de 544
+        // produits dépasserait max_input_vars (PHP tronque alors silencieusement
+        // les champs, d'où des erreurs "stocks.N.quantite is required").
+        const form = document.querySelector('form[action*="stock"]');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                let changed = 0;
+
+                inputs.forEach(function (input) {
+                    const initial = parseInt(input.dataset.initial, 10);
+                    const val = parseInt(input.value, 10);
+                    const row = input.closest('tr');
+                    const hidden = row ? row.querySelector('input[name$="[produit_id]"]') : null;
+
+                    if (isNaN(val) || val === initial) {
+                        input.disabled = true;              // champ désactivé = non envoyé
+                        if (hidden) hidden.disabled = true;
+                    } else {
+                        changed++;
+                    }
+                });
+
+                if (changed === 0) {
+                    e.preventDefault();
+                    // On réactive tout pour laisser la page utilisable.
+                    inputs.forEach(function (input) {
+                        input.disabled = false;
+                        const row = input.closest('tr');
+                        const hidden = row ? row.querySelector('input[name$="[produit_id]"]') : null;
+                        if (hidden) hidden.disabled = false;
+                    });
+                    alert('Aucune quantité modifiée : rien à enregistrer.');
+                }
+            });
+        }
     })();
 </script>
 @endsection
