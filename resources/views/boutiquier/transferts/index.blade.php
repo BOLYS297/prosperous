@@ -161,10 +161,26 @@
                                     <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold border border-emerald-200">Livrée</span>
                                 @elseif($demande->statut == 'probleme')
                                     <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-600 text-xs font-bold border border-rose-200" title="{{ $demande->note_probleme }}">Problème signalé</span>
+                                @elseif($demande->statut == 'refusee')
+                                    <span class="px-3 py-1 rounded-full bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300" title="{{ $demande->note_probleme }}"><i class="ri-close-circle-line mr-1"></i> Refusée</span>
                                 @endif
                             </td>
                             <td class="p-4 text-right">
-                                @if($demande->statut == 'expediee')
+                                @if($demande->statut == 'en_attente')
+                                    {{-- Tant que le magasin n'a pas traité la demande, elle reste modifiable. --}}
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <a href="{{ route('boutiquier.transferts.edit', $demande->id) }}" class="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors" title="Modifier">
+                                            <i class="ri-pencil-line"></i>
+                                        </a>
+                                        <form action="{{ route('boutiquier.transferts.destroy', $demande->id) }}" method="POST" data-offline-sync="true" onsubmit="return confirm('Supprimer cette demande de stock ?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 bg-rose-100 text-rose-600 hover:bg-rose-200 rounded-lg transition-colors" title="Supprimer">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                @elseif($demande->statut == 'expediee')
                                     <div class="flex items-center justify-end space-x-2">
                                         <form action="{{ route('boutiquier.transferts.confirmer', $demande->id) }}" method="POST" data-offline-sync="true">
                                             @csrf

@@ -93,6 +93,62 @@ class DemandeTransfertController extends Controller
         return redirect()->route('boutiquier.transferts.index')->with('success', 'Demande de stock envoyée au magasin central.');
     }
 
+    /** Modifier sa demande tant que le magasin ne l'a pas traitée. */
+    public function edit($id)
+    {
+        $demande = DemandeTransfert::where('boutique_id', Auth::user()->boutique_id)->findOrFail($id);
+
+        if ($demande->statut !== 'en_attente') {
+            return redirect()->route('boutiquier.transferts.index')->with('error', $this->messageVerrou());
+        }
+
+        $produits = Produit::orderBy('nom')->get();
+
+        $magasinIds = \App\Models\Boutique::where('type', 'magasin')->pluck('id');
+        $stockMagasin = Stock::whereIn('boutique_id', $magasinIds)
+            ->selectRaw('produit_id, SUM(quantite) as total')
+            ->groupBy('produit_id')
+            ->pluck('total', 'produit_id');
+
+        return view('boutiquier.transferts.edit', compact('demande', 'produits', 'stockMagasin'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $demande = DemandeTransfert::where('boutique_id', Auth::user()->boutique_id)->findOrFail($id);
+
+        if ($demande->statut !== 'en_attente') {
+            return redirect()->route('boutiquier.transferts.index')->with('error', $this->messageVerrou());
+        }
+
+        $validated = $request->validate([
+            'produit_id' => 'required|exists:produits,id',
+            'quantite_demandee' => 'required|integer|min:1',
+        ]);
+
+        $demande->update($validated);
+
+        return redirect()->route('boutiquier.transferts.index')->with('success', 'Demande de stock mise à jour.');
+    }
+
+    public function destroy($id)
+    {
+        $demande = DemandeTransfert::where('boutique_id', Auth::user()->boutique_id)->findOrFail($id);
+
+        if ($demande->statut !== 'en_attente') {
+            return redirect()->route('boutiquier.transferts.index')->with('error', $this->messageVerrou());
+        }
+
+        $demande->delete();
+
+        return redirect()->route('boutiquier.transferts.index')->with('success', 'Demande de stock supprimée.');
+    }
+
+    protected function messageVerrou(): string
+    {
+        return "Cette demande a déjà été traitée par le magasin : elle n'est plus modifiable.";
+    }
+
     public function confirmer(Request $request, $id)
     {
         $boutiqueId = Auth::user()->boutique_id;
