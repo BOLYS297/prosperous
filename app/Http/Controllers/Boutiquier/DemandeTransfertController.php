@@ -24,7 +24,26 @@ class DemandeTransfertController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('boutiquier.transferts.index', compact('demandes'));
+        // Transferts entre points de vente initiés par le magasin :
+        //  - à autoriser  : ma boutique est la SOURCE (le stock va sortir)
+        //  - à réceptionner : ma boutique est la DESTINATION (le stock arrive)
+        $aAutoriser = \App\Models\TransfertStock::with(['produit', 'destination', 'initiator'])
+            ->aAutoriser($boutiqueId)
+            ->orderBy('created_at')
+            ->get();
+
+        $aReceptionner = \App\Models\TransfertStock::with(['produit', 'source'])
+            ->aReceptionner($boutiqueId)
+            ->orderBy('created_at')
+            ->get();
+
+        // Stock disponible par produit dans MA boutique (plafonne l'autorisation).
+        $stockDispo = \App\Models\Stock::where('boutique_id', $boutiqueId)
+            ->selectRaw('produit_id, SUM(quantite) as total')
+            ->groupBy('produit_id')
+            ->pluck('total', 'produit_id');
+
+        return view('boutiquier.transferts.index', compact('demandes', 'aAutoriser', 'aReceptionner', 'stockDispo'));
     }
 
     public function create()

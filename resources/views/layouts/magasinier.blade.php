@@ -99,6 +99,11 @@
                         @endif
                     </a>
 
+                    <a href="{{ route('magasinier.transferts-stock.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('magasinier.transferts-stock.*') ? 'active' : '' }}">
+                        <i class="ri-arrow-left-right-line text-xl mr-3"></i>
+                        <span>Transferts entre PDV</span>
+                    </a>
+
                     <a href="{{ route('magasinier.recharges.index') }}" class="nav-item flex items-center justify-between px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('magasinier.recharges.*') ? 'active' : '' }}">
                         <div class="flex items-center">
                             <i class="ri-repeat-line text-xl mr-3"></i>

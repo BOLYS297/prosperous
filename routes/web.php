@@ -110,6 +110,11 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::get('/transferts', [\App\Http\Controllers\Magasinier\TransfertController::class, 'index'])->name('transferts.index');
         Route::post('/transferts/{id}/expedier', [\App\Http\Controllers\Magasinier\TransfertController::class, 'expedier'])->name('transferts.expedier');
 
+        // Transferts de stock ENTRE points de vente (initiés par le magasinier)
+        Route::get('/transferts-stock', [\App\Http\Controllers\Magasinier\TransfertStockController::class, 'index'])->name('transferts-stock.index');
+        Route::get('/transferts-stock/create', [\App\Http\Controllers\Magasinier\TransfertStockController::class, 'create'])->name('transferts-stock.create');
+        Route::post('/transferts-stock', [\App\Http\Controllers\Magasinier\TransfertStockController::class, 'store'])->name('transferts-stock.store');
+
         // Recharges (magasinier)
         Route::get('/recharges', [\App\Http\Controllers\Magasinier\RechargeController::class, 'index'])->name('recharges.index');
         Route::get('/recharges/{recharge}', [\App\Http\Controllers\Magasinier\RechargeController::class, 'show'])->name('recharges.show');
@@ -141,6 +146,11 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::post('/transferts', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'store'])->name('transferts.store');
         Route::post('/transferts/{id}/confirmer', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'confirmer'])->name('transferts.confirmer');
         Route::post('/transferts/{id}/probleme', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'signalerProbleme'])->name('transferts.probleme');
+
+        // Transferts de stock entre points de vente : autorisation (source) / réception (destination)
+        Route::post('/transferts-stock/{transfert}/autoriser', [\App\Http\Controllers\Boutiquier\TransfertStockController::class, 'autoriser'])->name('transferts-stock.autoriser');
+        Route::post('/transferts-stock/{transfert}/refuser', [\App\Http\Controllers\Boutiquier\TransfertStockController::class, 'refuser'])->name('transferts-stock.refuser');
+        Route::post('/transferts-stock/{transfert}/receptionner', [\App\Http\Controllers\Boutiquier\TransfertStockController::class, 'receptionner'])->name('transferts-stock.receptionner');
 
         Route::get('/dettes', [\App\Http\Controllers\Boutiquier\DetteController::class, 'index'])->name('dettes.index');
         Route::post('/dettes/{achat}/payer', [\App\Http\Controllers\Boutiquier\DetteController::class, 'payer'])->name('dettes.payer');
