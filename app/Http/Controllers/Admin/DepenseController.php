@@ -51,16 +51,54 @@ class DepenseController extends Controller
 
     public function store(Request $request)
     {
+        $isSoldeAdmin = $request->input('source_paiement') === 'solde_admin';
+
         $validated = $request->validate([
-            'boutique_id' => 'required|exists:boutiques,id',
+            'source_paiement' => 'required|in:boutique,solde_admin',
+            'boutique_id' => [$isSoldeAdmin ? 'nullable' : 'required', 'exists:boutiques,id'],
             'montant' => 'required|numeric|min:1',
             'intitule' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
         ]);
 
-        $boutique = Boutique::findOrFail($validated['boutique_id']);
         $intitule = $validated['intitule'];
         $description = $validated['description'] ?? null;
+        $montant = (float) $validated['montant'];
+
+        // Dépense réglée avec le solde personnel : aucune boutique n'est
+        // impactée, donc aucune validation à demander.
+        if ($isSoldeAdmin) {
+            if ($montant > (float) Auth::user()->solde_personnel) {
+                return back()->withInput()->with('error', 'Solde personnel insuffisant : ' . money_format_app(Auth::user()->solde_personnel) . ' disponible.');
+            }
+
+            $depense = Depense::create([
+                'boutique_id' => null,
+                'user_id' => Auth::id(),
+                'intitule' => $intitule,
+                'description' => $description,
+                'montant' => $montant,
+                'photo_justificatif' => null,
+                'statut' => 'approved',
+                'admin_id' => Auth::id(),
+                'validated_at' => now(),
+            ]);
+
+            \App\Models\AdminSoldeMouvement::enregistrer(
+                Auth::id(),
+                'depense',
+                -$montant,
+                $intitule,
+                null,
+                'depense',
+                $depense->id
+            );
+
+            return redirect()->route('admin.depenses.index')
+                ->with('success', 'Dépense de ' . money_format_app($montant) . ' réglée avec votre solde personnel.');
+        }
+
+        $boutique = Boutique::findOrFail($validated['boutique_id']);
 
         // On NE débite PAS immédiatement : la dépense reste "en attente de
         // validation par la boutique". Le solde ne sera débité qu'après

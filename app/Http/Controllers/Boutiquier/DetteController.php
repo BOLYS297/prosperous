@@ -20,6 +20,9 @@ class DetteController extends Controller
 
         $dettes = Achat::with(['fournisseur', 'paiements', 'recharge', 'debitBoutique'])
             ->where('statut', 'dette')
+            // Les dettes imputées au solde personnel d'un admin ne concernent
+            // aucune boutique.
+            ->whereNull('debit_admin_id')
             ->where(function ($query) use ($boutiqueId) {
                 // Ma boutique voit : les dettes PARTAGÉES (null) + celles QUI LUI SONT ATTRIBUÉES
                 $query->whereNull('debit_boutique_id')

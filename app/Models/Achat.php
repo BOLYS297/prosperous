@@ -6,7 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Achat extends Model
 {
-    protected $fillable = ['fournisseur_id', 'boutique_id', 'debit_boutique_id', 'montant_total', 'statut'];
+    protected $fillable = ['fournisseur_id', 'boutique_id', 'debit_boutique_id', 'debit_admin_id', 'montant_total', 'statut'];
+
+    /** Dette imputée au solde personnel d'un administrateur (et non à une boutique). */
+    public function debitAdmin()
+    {
+        return $this->belongsTo(User::class, 'debit_admin_id');
+    }
 
     public function fournisseur()
     {

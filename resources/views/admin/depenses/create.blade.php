@@ -29,15 +29,36 @@
     <form action="{{ route('admin.depenses.store') }}" method="POST">
         @csrf
 
-        <div class="grid gap-6 mb-6">
+        <div class="grid gap-6 mb-6" x-data="{ source: '{{ old('source_paiement', 'boutique') }}' }">
             <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Payer avec <span class="text-red-500">*</span></label>
+                <div class="flex flex-col sm:flex-row gap-4 text-sm text-slate-700">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="source_paiement" value="boutique" x-model="source" class="text-blue-600 focus:ring-blue-500">
+                        <span>Le solde d'une <strong>boutique</strong> <span class="text-slate-400">(validation du boutiquier requise)</span></span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="source_paiement" value="solde_admin" x-model="source" class="text-emerald-600 focus:ring-emerald-500">
+                        <span>Mon <strong>solde personnel</strong>
+                            <span class="text-slate-400">({{ number_format(auth()->user()->solde_personnel ?? 0, 0, ',', ' ') }} {{ param("currency") }})</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div x-show="source === 'boutique'">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Boutique débitée <span class="text-red-500">*</span></label>
-                <select name="boutique_id" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                <select name="boutique_id" class="w-full rounded-2xl border border-slate-300 px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none" :required="source === 'boutique'">
                     <option value="">-- Sélectionner une boutique --</option>
                     @foreach($boutiques as $boutique)
                         <option value="{{ $boutique->id }}" {{ old('boutique_id') == $boutique->id ? 'selected' : '' }}>{{ $boutique->nom }} (Solde: {{ number_format($boutique->solde, 0, ',', ' ') }} {{ param("currency") }})</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div x-show="source === 'solde_admin'" x-cloak class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 text-sm flex items-start">
+                <i class="ri-wallet-3-line text-lg mr-2 mt-0.5"></i>
+                <p>La dépense sera <strong>débitée immédiatement de votre solde personnel</strong> et enregistrée comme validée. Aucune boutique n'est impactée, aucune validation requise.</p>
             </div>
 
             <div>

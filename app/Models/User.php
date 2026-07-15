@@ -30,7 +30,14 @@ class User extends Authenticatable
         'boutique_id',
         'monthly_salary',
         'commission_percent',
+        'solde_personnel',
     ];
+
+    /** Mouvements du solde personnel (recettes, retraits, achats, dépenses). */
+    public function soldeMouvements()
+    {
+        return $this->hasMany(AdminSoldeMouvement::class, 'admin_id');
+    }
 
     /** Le mécanicien n'a pas de salaire de base : il est payé à la commission. */
     public function isMecanicien(): bool

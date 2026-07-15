@@ -110,6 +110,11 @@
                         <span>Boutiques & Trésorerie</span>
                     </a>
 
+                    <a href="{{ route('admin.solde.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.solde.*') ? 'active' : '' }}">
+                        <i class="ri-hand-coin-line text-xl mr-3"></i>
+                        <span>Mon solde (recettes)</span>
+                    </a>
+
                     <a href="{{ route('admin.depenses.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.depenses.*') ? 'active' : '' }}">
                         <i class="ri-wallet-3-line text-xl mr-3"></i>
                         <span>Dépenses</span>
