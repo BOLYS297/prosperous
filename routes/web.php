@@ -100,6 +100,9 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::post('recharges/validation/{recharge}/valider', [\App\Http\Controllers\Admin\RechargeValidationController::class, 'valider'])->name('recharges.validation.valider');
         Route::post('recharges/validation/{recharge}/rejeter', [\App\Http\Controllers\Admin\RechargeValidationController::class, 'rejeter'])->name('recharges.validation.rejeter');
 
+        // Rapport des bénéfices (journalier, global et par point de vente)
+        Route::get('benefices', [\App\Http\Controllers\Admin\BeneficeController::class, 'index'])->name('benefices.index');
+
         // Rapports et Logs
         Route::get('logs', [\App\Http\Controllers\Admin\LogController::class, 'index'])->name('logs.index');
         Route::get('rapports', [\App\Http\Controllers\Admin\RapportController::class, 'index'])->name('rapports.index');

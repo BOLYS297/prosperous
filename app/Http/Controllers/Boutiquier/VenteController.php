@@ -96,13 +96,22 @@ class VenteController extends Controller
 
                 // Coût FIGÉ à la vente (moyenne pondérée des lots consommés) :
                 // indispensable pour calculer le bénéfice plus tard.
+                // IMPORTANT : si un lot n'a AUCUN prix d'achat connu, on enregistre
+                // null (coût inconnu) plutôt que 0 — sinon le bénéfice afficherait
+                // 100 % de marge sur cette ligne.
                 $costTotal = 0;
                 $costQty = 0;
+                $coutConnu = true;
                 foreach ($consumedStocks as $cs) {
-                    $costTotal += ((float) ($cs['stock']->prix_achat_unitaire ?? 0)) * (int) $cs['quantite'];
+                    $lotCost = $cs['stock']->prix_achat_unitaire;
+                    if ($lotCost === null) {
+                        $coutConnu = false;
+                        break;
+                    }
+                    $costTotal += (float) $lotCost * (int) $cs['quantite'];
                     $costQty += (int) $cs['quantite'];
                 }
-                $avgCost = $costQty > 0 ? $costTotal / $costQty : 0.0;
+                $avgCost = ($coutConnu && $costQty > 0) ? $costTotal / $costQty : null;
 
                 if ($isGrossiste && $grossisteFixedPrice !== null) {
                     // Vente grossiste : prix unique (tarif spécifique OU prix grossiste par défaut).
@@ -144,8 +153,10 @@ class VenteController extends Controller
 
                         // Commission mécanicien : pourcentage du BÉNÉFICE de l'article,
                         // uniquement sur une vente client attribuée à un mécanicien.
+                        // Sans coût connu, le bénéfice est incalculable : pas de commission
+                        // (sinon elle porterait sur le chiffre d'affaires entier).
                         $commission = null;
-                        if ($mecanicien && ! $isGrossiste && $commissionPct > 0) {
+                        if ($mecanicien && ! $isGrossiste && $commissionPct > 0 && $avgCost !== null) {
                             $benefice = ($avgUnitPrice - $avgCost) * $prodQty;
                             $commission = max(0, $benefice * $commissionPct / 100);
                         }

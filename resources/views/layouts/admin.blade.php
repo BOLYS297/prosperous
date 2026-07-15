@@ -125,6 +125,11 @@
                         <span>Mon profil</span>
                     </a>
 
+                    <a href="{{ route('admin.benefices.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.benefices.*') ? 'active' : '' }}">
+                        <i class="ri-funds-line text-xl mr-3"></i>
+                        <span>Bénéfices</span>
+                    </a>
+
                     <a href="{{ route('admin.rapports.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.rapports.*') ? 'active' : '' }}">
                         <i class="ri-line-chart-line text-xl mr-3"></i>
                         <span>Rapports</span>
