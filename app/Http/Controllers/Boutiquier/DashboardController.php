@@ -59,6 +59,12 @@ class DashboardController extends Controller
 
         $grossistes = \App\Models\Grossiste::with('prixProduits')->get();
 
+        // Mécaniciens rattachés à cette boutique (vente client uniquement).
+        $mecaniciens = \App\Models\User::where('role', 'mecanicien')
+            ->where('boutique_id', $boutiqueId)
+            ->orderBy('nom_utilisateur')
+            ->get();
+
         // Ventes du jour
         $ventesAujourdhui = \App\Models\Vente::where('boutique_id', $boutiqueId)
             ->whereDate('created_at', today())
@@ -101,7 +107,7 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('boutiquier.dashboard', compact('boutique', 'produits', 'grossistes', 'ventesAujourdhui', 'nbVentesJour', 'dettesCount', 'dettesRestantes', 'notifications', 'pendingValidations', 'q', 'shiftWarning'));
+        return view('boutiquier.dashboard', compact('boutique', 'produits', 'grossistes', 'mecaniciens', 'ventesAujourdhui', 'nbVentesJour', 'dettesCount', 'dettesRestantes', 'notifications', 'pendingValidations', 'q', 'shiftWarning'));
     }
 
     public function markNotificationAsRead($notificationId)

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use App\Models\Deduction;
 use App\Models\User;
+use App\Models\VenteLigne;
 
 class SalaryPeriod extends Model
 {
@@ -27,11 +28,26 @@ class SalaryPeriod extends Model
     public static function generateForPeriod(string $period)
     {
         $period = Carbon::createFromFormat('Y-m', $period)->format('Y-m');
-        $employees = User::whereIn('role', ['magasinier', 'boutiquier'])->get();
+        $employees = User::whereIn('role', ['magasinier', 'boutiquier', 'mecanicien'])->get();
 
         return $employees->map(function (User $user) use ($period) {
             return self::createOrUpdateForUserAndPeriod($user, $period);
         });
+    }
+
+    /**
+     * Total des commissions figées d'un mécanicien sur un mois donné
+     * (ventes client uniquement, ventes supprimées exclues).
+     */
+    public static function commissionsForUserAndPeriod(User $user, int $year, int $month): float
+    {
+        return (float) VenteLigne::query()
+            ->join('ventes', 'ventes.id', '=', 'vente_lignes.vente_id')
+            ->where('ventes.mecanicien_id', $user->id)
+            ->whereNull('ventes.deleted_at')
+            ->whereYear('ventes.created_at', $year)
+            ->whereMonth('ventes.created_at', $month)
+            ->sum('vente_lignes.commission_mecanicien');
     }
 
     public static function createOrUpdateForUserAndPeriod(User $user, string $period): self
@@ -51,7 +67,12 @@ class SalaryPeriod extends Model
             ->whereMonth('approved_at', $month)
             ->sum('amount');
 
-        $grossSalary = $user->monthly_salary;
+        // Le mécanicien n'a pas de salaire de base : son brut correspond au
+        // total des commissions gagnées sur les ventes client du mois.
+        $grossSalary = $user->role === 'mecanicien'
+            ? self::commissionsForUserAndPeriod($user, $year, $month)
+            : $user->monthly_salary;
+
         $totalDeductions = $previousCarryover + $approvedDeductions;
         $netSalary = max(0, $grossSalary - $totalDeductions);
         $carryoverNext = max(0, $totalDeductions - $grossSalary);

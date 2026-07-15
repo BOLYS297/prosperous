@@ -238,6 +238,21 @@
                     </select>
                     <p class="text-xs text-slate-500 mt-2">Laissez « Prix grossiste par défaut » pour vendre au tarif grossiste de base, ou choisissez un grossiste pour appliquer ses tarifs personnalisés.</p>
                 </div>
+
+                @if($mecaniciens->isNotEmpty())
+                    <div class="lg:col-span-2" id="mecanicien-select-container">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            Mécanicien <span class="text-slate-400 font-normal">(optionnel)</span>
+                        </label>
+                        <select id="mecanicien-select" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Aucun mécanicien --</option>
+                            @foreach($mecaniciens as $mecanicien)
+                                <option value="{{ $mecanicien->id }}">{{ $mecanicien->nom_utilisateur }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-slate-500 mt-2">Enregistrez la vente au nom d'un mécanicien : il touchera sa commission sur le bénéfice des articles vendus.</p>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -266,6 +281,7 @@
                 @csrf
                 <input type="hidden" name="is_grossiste" id="checkout-is-grossiste" value="0">
                 <input type="hidden" name="grossiste_id" id="checkout-grossiste-id" value="">
+                <input type="hidden" name="mecanicien_id" id="checkout-mecanicien-id" value="">
                 <div id="checkout-line-inputs"></div>
                 <button id="checkout-button" type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     Enregistrer le ticket
@@ -394,6 +410,9 @@
         const checkoutButton = document.getElementById('checkout-button');
         const checkoutIsGrossiste = document.getElementById('checkout-is-grossiste');
         const checkoutGrossisteId = document.getElementById('checkout-grossiste-id');
+        const checkoutMecanicienId = document.getElementById('checkout-mecanicien-id');
+        const mecanicienSelect = document.getElementById('mecanicien-select');
+        const mecanicienContainer = document.getElementById('mecanicien-select-container');
         const clearCartButton = document.getElementById('clear-cart-button');
 
         let cart = {};
@@ -466,6 +485,10 @@
             cartTotalLabel.textContent = new Intl.NumberFormat('fr-FR').format(total) + ' {{ param("currency") }}';
             checkoutIsGrossiste.value = getSaleType() === 'grossiste' ? '1' : '0';
             checkoutGrossisteId.value = getSaleType() === 'grossiste' ? getSelectedGrossisteId() : '';
+            // Le mécanicien n'est crédité que sur une vente CLIENT.
+            if (checkoutMecanicienId) {
+                checkoutMecanicienId.value = (getSaleType() === 'client' && mecanicienSelect) ? mecanicienSelect.value : '';
+            }
         }
 
         function updateCard(card) {
@@ -522,6 +545,10 @@
             if (grossisteContainer) {
                 grossisteContainer.style.display = saleType === 'grossiste' ? 'block' : 'none';
             }
+            // Le mécanicien ne concerne que les ventes client.
+            if (mecanicienContainer) {
+                mecanicienContainer.style.display = saleType === 'client' ? 'block' : 'none';
+            }
             productCards.forEach(updateCard);
             updateCartDisplay();
         }
@@ -561,6 +588,9 @@
         saleTypeInputs.forEach(input => input.addEventListener('change', updateAllCards));
         if (grossisteSelect) {
             grossisteSelect.addEventListener('change', updateAllCards);
+        }
+        if (mecanicienSelect) {
+            mecanicienSelect.addEventListener('change', updateCartDisplay);
         }
 
         productCards.forEach(card => {

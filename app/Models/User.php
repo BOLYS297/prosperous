@@ -29,7 +29,14 @@ class User extends Authenticatable
         'device_token',
         'boutique_id',
         'monthly_salary',
+        'commission_percent',
     ];
+
+    /** Le mécanicien n'a pas de salaire de base : il est payé à la commission. */
+    public function isMecanicien(): bool
+    {
+        return $this->role === 'mecanicien';
+    }
 
     public function boutique()
     {

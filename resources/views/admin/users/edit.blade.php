@@ -9,7 +9,7 @@
 </div>
 
 <div class="glass-panel rounded-2xl p-8 max-w-3xl">
-    <form action="{{ route('admin.users.update', $user) }}" method="POST">
+    <form action="{{ route('admin.users.update', $user) }}" method="POST" x-data="{ role: '{{ old('role', $user->role) }}' }">
         @csrf
         @method('PUT')
 
@@ -28,30 +28,42 @@
                 <label class="block text-sm font-medium text-slate-700 mb-2">Nom d'utilisateur</label>
                 <input type="text" name="nom_utilisateur" value="{{ old('nom_utilisateur', $user->nom_utilisateur) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
             </div>
-            <div>
+            <div x-show="role !== 'mecanicien'">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Adresse Email</label>
-                <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
+                <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" :required="role !== 'mecanicien'">
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
+            <div x-show="role !== 'mecanicien'">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
                 <input type="text" name="password" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Laissez vide pour conserver le mot de passe actuel">
                 <p class="text-xs text-slate-500 mt-1">Si vous laissez ce champ vide, le mot de passe actuel sera conservé.</p>
             </div>
-            <div>
+            <div x-show="role !== 'mecanicien'">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Salaire mensuel ({{ param("currency") }})</label>
-                <input type="number" min="0" name="monthly_salary" value="{{ old('monthly_salary', $user->monthly_salary) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
+                <input type="number" min="0" name="monthly_salary" value="{{ old('monthly_salary', $user->monthly_salary) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" :required="role !== 'mecanicien'">
+            </div>
+
+            <div x-show="role === 'mecanicien'" x-cloak>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Commission sur le bénéfice (%)</label>
+                <input type="number" step="0.01" min="0" max="100" name="commission_percent" value="{{ old('commission_percent', $user->commission_percent ?? param('mecanicien_commission_percent', 10)) }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" :required="role === 'mecanicien'">
+                <p class="text-xs text-slate-500 mt-1">Pourcentage du bénéfice de chaque article vendu en son nom (ventes client uniquement).</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" x-data="{ role: '{{ old('role', $user->role) }}' }">
+        <div x-show="role === 'mecanicien'" x-cloak class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm flex">
+            <i class="ri-information-line text-xl mr-3 shrink-0"></i>
+            <p>Le <strong>mécanicien ne se connecte pas</strong> à l'application : ni identifiants, ni horaires, ni salaire de base. Il est payé en fin de mois par le cumul de ses commissions.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">Rôle</label>
                 <select name="role" x-model="role" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" required>
                     <option value="boutiquier" {{ $user->role === 'boutiquier' ? 'selected' : '' }}>Boutiquier</option>
                     <option value="magasinier" {{ $user->role === 'magasinier' ? 'selected' : '' }}>Magasinier</option>
+                    <option value="mecanicien" {{ $user->role === 'mecanicien' ? 'selected' : '' }}>Mécanicien</option>
                 </select>
             </div>
 

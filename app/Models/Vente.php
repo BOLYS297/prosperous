@@ -9,7 +9,13 @@ class Vente extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['boutique_id', 'user_id', 'montant_total', 'grossiste_id'];
+    protected $fillable = ['boutique_id', 'user_id', 'montant_total', 'grossiste_id', 'mecanicien_id'];
+
+    /** Mécanicien au nom de qui la vente client a été enregistrée. */
+    public function mecanicien()
+    {
+        return $this->belongsTo(User::class, 'mecanicien_id');
+    }
 
     public function boutique()
     {

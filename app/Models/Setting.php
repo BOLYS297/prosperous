@@ -22,6 +22,8 @@ class Setting extends Model
         'company_address' => '',
         'company_phone' => '',
         'ticket_footer' => 'Merci de votre visite !',
+        // Pourcentage de commission proposé par défaut à la création d'un mécanicien.
+        'mecanicien_commission_percent' => '10',
         'logo_path' => '',
         'banner_path' => '',
     ];
