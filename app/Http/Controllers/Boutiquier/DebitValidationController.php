@@ -44,6 +44,18 @@ class DebitValidationController extends Controller
                         'validated_at' => now(),
                     ]);
                 }
+            } elseif ($validation->source_type === 'recette') {
+                // La recette quitte la caisse de la boutique et entre dans le
+                // solde personnel de l'administrateur qui l'a demandée.
+                \App\Models\AdminSoldeMouvement::enregistrer(
+                    $validation->initiator_id,
+                    'recette',
+                    (float) $validation->amount,
+                    $validation->motif ?: 'Récupération des recettes',
+                    $validation->boutique_id,
+                    'recette',
+                    $validation->id
+                );
             }
 
             $validation->update([

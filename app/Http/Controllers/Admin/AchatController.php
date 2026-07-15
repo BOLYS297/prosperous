@@ -81,27 +81,40 @@ class AchatController extends Controller
             'lignes.*.prix_vente_grossiste' => 'nullable|numeric|min:0',
         ];
 
-        // Make debit_boutique_id required only when statut === 'paye'.
-        if ($request->input('statut') === 'paye') {
+        // Source du paiement / de la dette : une boutique, ou le solde personnel
+        // de l'administrateur.
+        $rules['source_paiement'] = 'required|in:boutique,solde_admin';
+        $isSoldeAdmin = $request->input('source_paiement') === 'solde_admin';
+
+        // La boutique de trésorerie n'est requise que pour un achat payé imputé
+        // à une boutique.
+        if ($request->input('statut') === 'paye' && ! $isSoldeAdmin) {
             $rules['debit_boutique_id'] = 'required|exists:boutiques,id';
         } else {
-            // Pour une dette : boutique responsable OPTIONNELLE (null = dette partagée par toutes).
+            // Dette : boutique responsable OPTIONNELLE (null = dette partagée).
             $rules['debit_boutique_id'] = 'nullable|exists:boutiques,id';
         }
 
         $request->validate($rules);
 
-        DB::transaction(function () use ($request) {
-            $montant_total = 0;
+        $montantTotal = 0;
+        foreach ($request->lignes as $ligne) {
+            $montantTotal += $ligne['quantite'] * $ligne['prix_unitaire'];
+        }
 
-            foreach ($request->lignes as $ligne) {
-                $montant_total += $ligne['quantite'] * $ligne['prix_unitaire'];
-            }
+        // Un achat payé depuis le solde personnel exige une trésorerie suffisante.
+        if ($request->input('statut') === 'paye' && $isSoldeAdmin && $montantTotal > (float) Auth::user()->solde_personnel) {
+            return back()->withInput()->with('error', 'Solde personnel insuffisant : ' . money_format_app(Auth::user()->solde_personnel) . ' disponible pour un achat de ' . money_format_app($montantTotal) . '.');
+        }
+
+        DB::transaction(function () use ($request, $isSoldeAdmin, $montantTotal) {
+            $montant_total = $montantTotal;
 
             $achat = \App\Models\Achat::create([
                 'fournisseur_id' => $request->fournisseur_id,
                 'boutique_id' => $request->boutique_id,
-                'debit_boutique_id' => $request->filled('debit_boutique_id') ? $request->debit_boutique_id : null,
+                'debit_boutique_id' => $isSoldeAdmin ? null : ($request->filled('debit_boutique_id') ? $request->debit_boutique_id : null),
+                'debit_admin_id' => $isSoldeAdmin ? Auth::id() : null,
                 'statut' => $request->statut,
                 'montant_total' => $montant_total
             ]);
@@ -160,9 +173,31 @@ class AchatController extends Controller
             // demande de validation. Le solde de la boutique ne sera débité (et le
             // paiement enregistré) qu'après confirmation par le boutiquier, qui peut
             // aussi contester le débit.
-            $debitBoutique = $request->input('statut') === 'paye' ? \App\Models\Boutique::find($request->debit_boutique_id) : null;
+            $debitBoutique = ($request->input('statut') === 'paye' && ! $isSoldeAdmin)
+                ? \App\Models\Boutique::find($request->debit_boutique_id)
+                : null;
 
-            if ($request->statut === 'paye' && $debitBoutique) {
+            if ($request->statut === 'paye' && $isSoldeAdmin) {
+                // Payé avec le solde personnel de l'admin : aucune boutique
+                // concernée, donc aucune validation à demander.
+                \App\Models\AchatPaiement::create([
+                    'achat_id' => $achat->id,
+                    'boutique_id' => null,
+                    'user_id' => Auth::id(),
+                    'montant' => $montant_total,
+                    'description' => 'Payé avec le solde personnel de l\'administrateur',
+                ]);
+
+                \App\Models\AdminSoldeMouvement::enregistrer(
+                    Auth::id(),
+                    'achat',
+                    -$montant_total,
+                    "Achat #{$achat->id}",
+                    null,
+                    'achat',
+                    $achat->id
+                );
+            } elseif ($request->statut === 'paye' && $debitBoutique) {
                 \App\Models\DebitValidation::create([
                     'boutique_id' => $debitBoutique->id,
                     'initiator_id' => Auth::id(),

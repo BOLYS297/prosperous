@@ -50,6 +50,11 @@ class DebitValidation extends Model
 
     public function getSourceLabelAttribute(): string
     {
-        return $this->source_type === 'achat' ? 'Achat comptant' : 'Dépense administrative';
+        return match ($this->source_type) {
+            'achat' => 'Achat comptant',
+            'depense' => 'Dépense administrative',
+            'recette' => 'Récupération de recette',
+            default => $this->source_type,
+        };
     }
 }

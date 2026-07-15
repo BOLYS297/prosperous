@@ -42,7 +42,7 @@
                 </select>
                 <p class="text-xs text-slate-500 mt-2">La destination finale de cet achat est toujours un magasin.</p>
             </div>
-            <div>
+            <div x-show="source === 'boutique'">
                 <label class="block text-sm font-medium text-slate-700 mb-2" x-text="statut === 'paye' ? 'Boutique à débiter * (comptant)' : 'Dette à la charge de'"></label>
                 <select name="debit_boutique_id" id="debit_boutique_select" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="" x-text="statut === 'dette' ? '— Partagée (toutes les boutiques) —' : '-- Sélectionner une boutique --'"></option>
@@ -58,6 +58,26 @@
                     <option value="paye">Payé comptant (déduit du solde)</option>
                     <option value="dette">Achat à crédit (dette)</option>
                 </select>
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-2">Imputer à <span class="text-red-500">*</span></label>
+                <div class="flex flex-col sm:flex-row gap-4 text-sm text-slate-700">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="source_paiement" value="boutique" x-model="source" @change="toggleDebitField()" class="text-blue-600 focus:ring-blue-500">
+                        <span>Une <strong>boutique</strong></span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="source_paiement" value="solde_admin" x-model="source" @change="toggleDebitField()" class="text-emerald-600 focus:ring-emerald-500">
+                        <span>Mon <strong>solde personnel</strong>
+                            <span class="text-slate-400">({{ number_format(auth()->user()->solde_personnel ?? 0, 0, ',', ' ') }} {{ param("currency") }} disponible)</span>
+                        </span>
+                    </label>
+                </div>
+                <p class="text-xs text-emerald-700 mt-2" x-show="source === 'solde_admin'" x-cloak>
+                    <i class="ri-information-line"></i>
+                    <span x-text="statut === 'paye' ? 'Le montant sera débité immédiatement de votre solde personnel (aucune validation boutiquier).' : 'La dette sera imputée à votre solde personnel : vous la rembourserez depuis « Mon solde ».'"></span>
+                </p>
             </div>
         </div>
 
@@ -161,6 +181,7 @@
         return {
             produits: @json($produits),
             statut: 'paye',
+            source: 'boutique',
             lignes: [
                 { produit_id: '', prix_unitaire: 0, prix_vente: 0, prix_vente_grossiste: '', quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' }
             ],
@@ -170,8 +191,9 @@
             },
             toggleDebitField() {
                 const debitSelect = document.getElementById('debit_boutique_select');
-                // Champ visible dans les deux cas ; requis uniquement au comptant.
-                if (this.statut === 'paye') {
+                if (! debitSelect) return;
+                // Boutique requise seulement pour un achat comptant imputé à une boutique.
+                if (this.statut === 'paye' && this.source === 'boutique') {
                     debitSelect.setAttribute('required', 'required');
                 } else {
                     debitSelect.removeAttribute('required');

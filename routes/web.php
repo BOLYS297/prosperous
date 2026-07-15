@@ -65,6 +65,12 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::put('depenses/{depense}', [\App\Http\Controllers\Admin\DepenseController::class, 'update'])->name('depenses.update');
         Route::delete('depenses/{depense}', [\App\Http\Controllers\Admin\DepenseController::class, 'destroy'])->name('depenses.destroy');
 
+        // Solde personnel de l'admin : recettes, retraits, remboursements
+        Route::get('solde', [\App\Http\Controllers\Admin\SoldeController::class, 'index'])->name('solde.index');
+        Route::post('solde/recuperer', [\App\Http\Controllers\Admin\SoldeController::class, 'recuperer'])->name('solde.recuperer');
+        Route::post('solde/retirer', [\App\Http\Controllers\Admin\SoldeController::class, 'retirer'])->name('solde.retirer');
+        Route::post('solde/achats/{achat}/rembourser', [\App\Http\Controllers\Admin\SoldeController::class, 'rembourserAchat'])->name('solde.achats.rembourser');
+
         // Boutiques / Trésorerie : approvisionnement du solde
         Route::get('boutiques', [\App\Http\Controllers\Admin\BoutiqueController::class, 'index'])->name('boutiques.index');
         Route::post('boutiques/{boutique}/crediter', [\App\Http\Controllers\Admin\BoutiqueController::class, 'crediter'])->name('boutiques.crediter');

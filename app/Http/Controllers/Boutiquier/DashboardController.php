@@ -76,6 +76,7 @@ class DashboardController extends Controller
 
         $dettes = \App\Models\Achat::with('paiements')
             ->where('statut', 'dette')
+            ->whereNull('debit_admin_id') // dettes du solde personnel de l'admin exclues
             ->where(function ($query) use ($boutiqueId) {
                 // Dettes partagées (null) + dettes attribuées à cette boutique
                 $query->whereNull('debit_boutique_id')
