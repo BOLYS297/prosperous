@@ -115,6 +115,7 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
 
         Route::get('/transferts', [\App\Http\Controllers\Magasinier\TransfertController::class, 'index'])->name('transferts.index');
         Route::post('/transferts/{id}/expedier', [\App\Http\Controllers\Magasinier\TransfertController::class, 'expedier'])->name('transferts.expedier');
+        Route::post('/transferts/{id}/rejeter', [\App\Http\Controllers\Magasinier\TransfertController::class, 'rejeter'])->name('transferts.rejeter');
 
         // Transferts de stock ENTRE points de vente (initiés par le magasinier)
         Route::get('/transferts-stock', [\App\Http\Controllers\Magasinier\TransfertStockController::class, 'index'])->name('transferts-stock.index');
@@ -150,6 +151,9 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::get('/transferts', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'index'])->name('transferts.index');
         Route::get('/transferts/create', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'create'])->name('transferts.create');
         Route::post('/transferts', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'store'])->name('transferts.store');
+        Route::get('/transferts/{id}/edit', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'edit'])->name('transferts.edit');
+        Route::put('/transferts/{id}', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'update'])->name('transferts.update');
+        Route::delete('/transferts/{id}', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'destroy'])->name('transferts.destroy');
         Route::post('/transferts/{id}/confirmer', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'confirmer'])->name('transferts.confirmer');
         Route::post('/transferts/{id}/probleme', [\App\Http\Controllers\Boutiquier\DemandeTransfertController::class, 'signalerProbleme'])->name('transferts.probleme');
 

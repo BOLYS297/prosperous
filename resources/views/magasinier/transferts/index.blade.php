@@ -61,14 +61,25 @@
                                 @elseif($demande->statut == 'probleme')
                                     <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-600 text-xs font-bold border border-rose-200" title="{{ $demande->note_probleme }}"><i class="ri-alert-line mr-1"></i> Problème signalé</span>
                                     <div class="text-xs text-rose-500 mt-1 max-w-xs">{{ $demande->note_probleme }}</div>
+                                @elseif($demande->statut == 'refusee')
+                                    <span class="px-3 py-1 rounded-full bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300"><i class="ri-close-circle-line mr-1"></i> Refusée</span>
+                                    <div class="text-xs text-slate-500 mt-1 max-w-xs">{{ $demande->note_probleme }}</div>
                                 @endif
                             </td>
                             <td class="p-4 text-right">
                                 @if($demande->statut == 'en_attente')
-                                    <div class="flex justify-end">
+                                    <div class="flex justify-end gap-2">
                                         <button type="button" @click="$dispatch('open-expedier', { id: {{ $demande->id }}, bNom: '{{ addslashes($demande->boutique->nom) }}', pNom: '{{ addslashes($demande->produit->nom) }}@if($demande->produit && $demande->produit->reference) ({{ addslashes($demande->produit->reference) }})@endif', qty: {{ $demande->quantite_demandee }} })" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors shadow-md flex items-center">
                                             <i class="ri-truck-line mr-1"></i> Expédier
                                         </button>
+
+                                        <form action="{{ route('magasinier.transferts.rejeter', $demande->id) }}" method="POST" onsubmit="return confirm('Refuser cette demande de stock ? La boutique sera notifiée.');">
+                                            @csrf
+                                            <input type="hidden" name="note_probleme" value="Demande refusée par le magasin.">
+                                            <button type="submit" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-sm font-bold transition-colors flex items-center">
+                                                <i class="ri-close-line mr-1"></i> Rejeter
+                                            </button>
+                                        </form>
                                     </div>
                                 @else
                                     <span class="text-slate-300 text-xs">—</span>

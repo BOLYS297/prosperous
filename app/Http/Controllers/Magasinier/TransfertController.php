@@ -26,6 +26,54 @@ class TransfertController extends Controller
         return view('magasinier.transferts.index', compact('demandes'));
     }
 
+    /** Le magasinier refuse une demande de stock : aucun mouvement de stock. */
+    public function rejeter(Request $request, $id)
+    {
+        $request->validate([
+            'note_probleme' => 'nullable|string|max:500',
+        ]);
+
+        $alreadyProcessed = false;
+
+        DB::transaction(function () use ($id, $request, &$alreadyProcessed) {
+            // Verrou + vérification atomique : une demande ne peut être traitée
+            // qu'une seule fois (pas de refus après expédition).
+            $demande = DemandeTransfert::where('id', $id)->lockForUpdate()->first();
+
+            if (! $demande || $demande->statut !== 'en_attente') {
+                $alreadyProcessed = true;
+                return;
+            }
+
+            $demande->update([
+                'statut' => 'refusee',
+                'note_probleme' => $request->input('note_probleme') ?: 'Demande refusée par le magasin.',
+            ]);
+        });
+
+        if ($alreadyProcessed) {
+            return back()->with('error', 'Cette demande a déjà été traitée.');
+        }
+
+        $demande = DemandeTransfert::with(['produit', 'boutique'])->find($id);
+
+        $boutiquiers = User::where('boutique_id', $demande->boutique_id)
+            ->where('role', 'boutiquier')
+            ->get();
+
+        if ($boutiquiers->isNotEmpty()) {
+            Notification::send($boutiquiers, new \App\Notifications\PendingActionNotification(
+                'Demande de stock refusée',
+                "Votre demande de {$demande->quantite_demandee} × {$demande->produit?->nom} a été refusée par le magasin. Motif : {$demande->note_probleme}",
+                'Voir mes demandes',
+                route('boutiquier.transferts.index'),
+                ['type' => 'demande_refusee']
+            ));
+        }
+
+        return back()->with('success', 'Demande refusée. La boutique a été notifiée.');
+    }
+
     public function expedier(Request $request, $id)
     {
         $request->validate([
