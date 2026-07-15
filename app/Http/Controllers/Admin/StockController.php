@@ -28,8 +28,10 @@ class StockController extends Controller
 
     public function update(Request $request, Boutique $boutique)
     {
+        // Seules les lignes MODIFIÉES sont envoyées (cf. vue) : le tableau peut
+        // donc être vide, et les index sont volontairement discontinus.
         $request->validate([
-            'stocks' => 'required|array',
+            'stocks' => 'nullable|array',
             'stocks.*.produit_id' => 'required|exists:produits,id',
             'stocks.*.quantite' => 'required|integer|min:0',
         ]);
