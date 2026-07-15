@@ -20,12 +20,27 @@ class VenteController extends Controller
             'quantite' => 'required_without:lignes|integer|min:1',
             'is_grossiste' => 'nullable|boolean',
             'grossiste_id' => 'nullable|exists:grossistes,id',
+            'mecanicien_id' => 'nullable|exists:users,id',
         ]);
 
         $user = Auth::user();
         $boutiqueId = $user->boutique_id;
         $isGrossiste = $request->boolean('is_grossiste');
         $grossisteId = $isGrossiste ? $request->grossiste_id : null;
+
+        // Un mécanicien ne peut être crédité que sur une vente CLIENT, et
+        // seulement s'il appartient à cette boutique.
+        $mecanicien = null;
+        if (! $isGrossiste && $request->filled('mecanicien_id')) {
+            $mecanicien = \App\Models\User::where('id', $request->mecanicien_id)
+                ->where('role', 'mecanicien')
+                ->where('boutique_id', $boutiqueId)
+                ->first();
+        }
+
+        $commissionPct = $mecanicien
+            ? (float) ($mecanicien->commission_percent ?? param('mecanicien_commission_percent', 0))
+            : 0.0;
 
         $lignesData = [];
         if ($request->filled('lignes')) {
@@ -43,13 +58,14 @@ class VenteController extends Controller
         // le prix grossiste par défaut de chaque produit (lot, sinon prix client).
 
         try {
-        DB::transaction(function () use ($lignesData, $user, $boutiqueId, $isGrossiste, $grossisteId, $request) {
+        DB::transaction(function () use ($lignesData, $user, $boutiqueId, $isGrossiste, $grossisteId, $request, $mecanicien, $commissionPct) {
             $total = 0;
             $vente = \App\Models\Vente::create([
                 'boutique_id' => $boutiqueId,
                 'user_id' => $user->id,
                 'montant_total' => 0,
                 'grossiste_id' => $grossisteId,
+                'mecanicien_id' => $mecanicien?->id,
             ]);
 
             foreach ($lignesData as $ligneData) {
@@ -78,8 +94,19 @@ class VenteController extends Controller
 
                 $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $produit->id, $quantite, $isGrossiste ? null : $produit->prix_vente);
 
+                // Coût FIGÉ à la vente (moyenne pondérée des lots consommés) :
+                // indispensable pour calculer le bénéfice plus tard.
+                $costTotal = 0;
+                $costQty = 0;
+                foreach ($consumedStocks as $cs) {
+                    $costTotal += ((float) ($cs['stock']->prix_achat_unitaire ?? 0)) * (int) $cs['quantite'];
+                    $costQty += (int) $cs['quantite'];
+                }
+                $avgCost = $costQty > 0 ? $costTotal / $costQty : 0.0;
+
                 if ($isGrossiste && $grossisteFixedPrice !== null) {
                     // Vente grossiste : prix unique (tarif spécifique OU prix grossiste par défaut).
+                    // Aucune commission mécanicien sur les ventes grossistes.
                     $unitPrice = $grossisteFixedPrice;
                     $total += $unitPrice * $quantite;
 
@@ -88,6 +115,8 @@ class VenteController extends Controller
                         'produit_id' => $produit->id,
                         'quantite' => $quantite,
                         'prix_unitaire' => $unitPrice,
+                        'prix_achat_unitaire' => $avgCost,
+                        'commission_mecanicien' => null,
                         'est_grossiste' => true,
                     ]);
                 } else {
@@ -113,11 +142,21 @@ class VenteController extends Controller
                         $avgUnitPrice = $prodTotal / $prodQty;
                         $total += $prodTotal;
 
+                        // Commission mécanicien : pourcentage du BÉNÉFICE de l'article,
+                        // uniquement sur une vente client attribuée à un mécanicien.
+                        $commission = null;
+                        if ($mecanicien && ! $isGrossiste && $commissionPct > 0) {
+                            $benefice = ($avgUnitPrice - $avgCost) * $prodQty;
+                            $commission = max(0, $benefice * $commissionPct / 100);
+                        }
+
                         \App\Models\VenteLigne::create([
                             'vente_id' => $vente->id,
                             'produit_id' => $produit->id,
                             'quantite' => $prodQty,
                             'prix_unitaire' => $avgUnitPrice,
+                            'prix_achat_unitaire' => $avgCost,
+                            'commission_mecanicien' => $commission,
                             'est_grossiste' => $isGrossiste,
                         ]);
                     }

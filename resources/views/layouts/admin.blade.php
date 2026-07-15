@@ -25,6 +25,7 @@
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
     <style>
+        [x-cloak] { display: none !important; }
         body { font-family: 'Inter', sans-serif; }
         .glass-panel {
             background: rgba(255, 255, 255, 0.7);

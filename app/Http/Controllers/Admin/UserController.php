@@ -7,6 +7,7 @@ use App\Models\Boutique;
 use App\Models\HoraireConnexion;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -28,34 +29,50 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        // Le mécanicien ne se connecte pas à l'application : ni horaires, ni
+        // salaire de base. Il est rémunéré par une commission sur le bénéfice.
+        $isMecanicien = $request->input('role') === 'mecanicien';
+
         $request->validate([
             'nom_utilisateur' => 'required|string|unique:users',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
-            'role' => ['required', Rule::in(['magasinier', 'boutiquier'])],
-            'monthly_salary' => 'required|integer|min:0',
-            'horaires' => ['required', 'array', 'min:1'],
+            'email' => [$isMecanicien ? 'nullable' : 'required', 'email', 'unique:users'],
+            'password' => [$isMecanicien ? 'nullable' : 'required', 'min:6'],
+            'role' => ['required', Rule::in(['magasinier', 'boutiquier', 'mecanicien'])],
+            'monthly_salary' => [$isMecanicien ? 'nullable' : 'required', 'integer', 'min:0'],
+            'commission_percent' => [$isMecanicien ? 'required' : 'nullable', 'numeric', 'min:0', 'max:100'],
+            'horaires' => [$isMecanicien ? 'nullable' : 'required', 'array'],
             'horaires.*' => [
-                'required',
                 Rule::exists('horaire_connexions', 'id')->where(function ($query) use ($request) {
                     $query->where('role', $request->input('role'));
                 }),
             ],
-            'boutique_id' => 'nullable|exists:boutiques,id'
+            'boutique_id' => [$isMecanicien ? 'required' : 'nullable', 'exists:boutiques,id'],
         ]);
 
         $user = User::create([
             'nom_utilisateur' => $request->nom_utilisateur,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'email' => $request->email ?: $this->technicalEmail($request->nom_utilisateur),
+            'password' => bcrypt($request->password ?: Str::random(32)),
             'role' => $request->role,
-            'monthly_salary' => $request->monthly_salary,
-            'boutique_id' => $request->boutique_id
+            'monthly_salary' => $isMecanicien ? 0 : $request->monthly_salary,
+            'commission_percent' => $isMecanicien ? $request->commission_percent : null,
+            'boutique_id' => $request->boutique_id,
         ]);
 
-        $user->horaires()->sync($request->horaires);
+        if (! $isMecanicien) {
+            $user->horaires()->sync($request->input('horaires', []));
+        }
 
-        return redirect()->route('admin.users.index')->with('success', 'Employé ajouté avec succès.');
+        return redirect()->route('admin.users.index')->with('success', $isMecanicien ? 'Mécanicien ajouté avec succès.' : 'Employé ajouté avec succès.');
+    }
+
+    /**
+     * Adresse technique pour un profil qui ne se connecte pas (mécanicien) :
+     * la colonne email est NOT NULL et unique.
+     */
+    protected function technicalEmail(string $nom): string
+    {
+        return Str::slug($nom) . '.' . Str::lower(Str::random(6)) . '@mecanicien.local';
     }
 
     public function edit(\App\Models\User $user)
@@ -70,28 +87,31 @@ class UserController extends Controller
 
     public function update(Request $request, \App\Models\User $user)
     {
+        $isMecanicien = $request->input('role') === 'mecanicien';
+
         $request->validate([
             'nom_utilisateur' => ['required', 'string', Rule::unique('users')->ignore($user->id)],
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => [$isMecanicien ? 'nullable' : 'required', 'email', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|min:6',
-            'role' => ['required', Rule::in(['magasinier', 'boutiquier'])],
-            'monthly_salary' => 'required|integer|min:0',
-            'horaires' => ['required', 'array', 'min:1'],
+            'role' => ['required', Rule::in(['magasinier', 'boutiquier', 'mecanicien'])],
+            'monthly_salary' => [$isMecanicien ? 'nullable' : 'required', 'integer', 'min:0'],
+            'commission_percent' => [$isMecanicien ? 'required' : 'nullable', 'numeric', 'min:0', 'max:100'],
+            'horaires' => [$isMecanicien ? 'nullable' : 'required', 'array'],
             'horaires.*' => [
-                'required',
                 Rule::exists('horaire_connexions', 'id')->where(function ($query) use ($request) {
                     $query->where('role', $request->input('role'));
                 }),
             ],
-            'boutique_id' => 'nullable|exists:boutiques,id'
+            'boutique_id' => [$isMecanicien ? 'required' : 'nullable', 'exists:boutiques,id'],
         ]);
 
         $data = [
             'nom_utilisateur' => $request->nom_utilisateur,
-            'email' => $request->email,
+            'email' => $request->email ?: ($user->email ?: $this->technicalEmail($request->nom_utilisateur)),
             'role' => $request->role,
-            'monthly_salary' => $request->monthly_salary,
-            'boutique_id' => $request->boutique_id
+            'monthly_salary' => $isMecanicien ? 0 : $request->monthly_salary,
+            'commission_percent' => $isMecanicien ? $request->commission_percent : null,
+            'boutique_id' => $request->boutique_id,
         ];
 
         if ($request->password) {
@@ -99,7 +119,9 @@ class UserController extends Controller
         }
 
         $user->update($data);
-        $user->horaires()->sync($request->horaires);
+
+        // Un mécanicien n'a pas d'horaires de connexion.
+        $user->horaires()->sync($isMecanicien ? [] : $request->input('horaires', []));
 
         return redirect()->route('admin.users.index')->with('success', 'Employé modifié avec succès.');
     }
