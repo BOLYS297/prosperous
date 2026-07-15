@@ -92,6 +92,11 @@
                         <i class="ri-refund-2-line text-xl mr-3"></i>
                         <span>Recouvrement des Dettes</span>
                     </a>
+
+                    <a href="{{ route('boutiquier.depenses.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('boutiquier.depenses.*') ? 'active' : '' }}">
+                        <i class="ri-wallet-3-line text-xl mr-3"></i>
+                        <span>Mes Dépenses</span>
+                    </a>
                 </nav>
             </div>
 

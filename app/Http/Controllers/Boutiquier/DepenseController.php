@@ -93,6 +93,76 @@ class DepenseController extends Controller
         }
     }
 
+    /** Historique des dépenses déclarées par ce vendeur. */
+    public function index()
+    {
+        $depenses = \App\Models\Depense::where('user_id', Auth::id())
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        return view('boutiquier.depenses.index', compact('depenses'));
+    }
+
+    public function edit(\App\Models\Depense $depense)
+    {
+        if (! $this->peutModifier($depense)) {
+            return redirect()->route('boutiquier.depenses.index')->with('error', $this->messageVerrou($depense));
+        }
+
+        return view('boutiquier.depenses.edit', compact('depense'));
+    }
+
+    public function update(Request $request, \App\Models\Depense $depense)
+    {
+        if (! $this->peutModifier($depense)) {
+            return redirect()->route('boutiquier.depenses.index')->with('error', $this->messageVerrou($depense));
+        }
+
+        $validated = $request->validate([
+            'intitule' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'montant' => 'required|numeric|min:1',
+        ]);
+
+        // Statut 'pending' : la dépense n'a pas encore impacté le solde.
+        $depense->update([
+            'intitule' => $validated['intitule'],
+            'description' => $validated['description'] ?? null,
+            'montant' => $validated['montant'],
+        ]);
+
+        return redirect()->route('boutiquier.depenses.index')->with('success', 'Dépense mise à jour.');
+    }
+
+    public function destroy(\App\Models\Depense $depense)
+    {
+        if (! $this->peutModifier($depense)) {
+            return redirect()->route('boutiquier.depenses.index')->with('error', $this->messageVerrou($depense));
+        }
+
+        $depense->delete();
+
+        return redirect()->route('boutiquier.depenses.index')->with('success', 'Dépense supprimée.');
+    }
+
+    /**
+     * Modifiable/supprimable uniquement tant que l'admin ne l'a ni validée ni
+     * rejetée (statut 'pending') — et seulement par son auteur.
+     */
+    protected function peutModifier(\App\Models\Depense $depense): bool
+    {
+        return (int) $depense->user_id === (int) Auth::id() && $depense->statut === 'pending';
+    }
+
+    protected function messageVerrou(\App\Models\Depense $depense): string
+    {
+        if ((int) $depense->user_id !== (int) Auth::id()) {
+            return 'Cette dépense ne vous appartient pas.';
+        }
+
+        return "Cette dépense a déjà été traitée par l'administrateur : seul l'admin peut désormais la modifier ou la supprimer.";
+    }
+
     protected function notifyAdminsForValidation(string $title, string $message, string $actionLabel, string $actionUrl)
     {
         $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();

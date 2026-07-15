@@ -109,6 +109,11 @@
                         <span>Boutiques & Trésorerie</span>
                     </a>
 
+                    <a href="{{ route('admin.depenses.index') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.depenses.*') ? 'active' : '' }}">
+                        <i class="ri-wallet-3-line text-xl mr-3"></i>
+                        <span>Dépenses</span>
+                    </a>
+
                     <a href="{{ route('admin.profile.edit') }}" class="nav-item flex items-center px-4 py-3 text-slate-600 rounded-lg {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}">
                         <i class="ri-user-line text-xl mr-3"></i>
                         <span>Mon profil</span>
