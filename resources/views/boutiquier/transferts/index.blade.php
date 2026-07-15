@@ -26,6 +26,101 @@
         </div>
     @endif
 
+    {{-- Transferts entre points de vente : ma boutique est la SOURCE --}}
+    @if(!empty($aAutoriser) && $aAutoriser->isNotEmpty())
+        <div class="mb-6 glass-panel rounded-2xl p-6 bg-amber-50 border border-amber-200">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="ri-logout-box-r-line text-2xl text-amber-600"></i>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Transferts à autoriser (sortie de stock)</h3>
+                    <p class="text-sm text-slate-600">Le magasin demande d'envoyer du stock de votre boutique vers un autre point de vente. Indiquez la quantité que vous autorisez.</p>
+                </div>
+                <span class="ml-auto inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-semibold shrink-0">{{ $aAutoriser->count() }}</span>
+            </div>
+
+            <div class="space-y-4">
+                @foreach($aAutoriser as $t)
+                    @php $dispo = (int) ($stockDispo[$t->produit_id] ?? 0); @endphp
+                    <div class="p-4 rounded-2xl bg-white border border-amber-100">
+                        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                            <div class="min-w-0">
+                                <div class="font-bold text-slate-900">{{ $t->produit?->nom ?? 'Produit' }}@if($t->produit?->reference) <span class="text-xs text-slate-400 font-mono">({{ $t->produit->reference }})</span>@endif</div>
+                                <div class="text-sm text-slate-600 mt-1">
+                                    Demandé : <strong>{{ $t->quantite_demandee }}</strong> · Destination : <strong>{{ $t->destination?->nom ?? '—' }}</strong>
+                                </div>
+                                <div class="text-xs mt-1 {{ $dispo <= 0 ? 'text-rose-600 font-semibold' : 'text-slate-500' }}">
+                                    Votre stock disponible : <strong>{{ $dispo }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                                <form action="{{ route('boutiquier.transferts-stock.autoriser', $t) }}" method="POST" data-offline-sync="true" class="flex items-end gap-2">
+                                    @csrf
+                                    <div>
+                                        <label class="block text-xs text-slate-500 mb-1">Quantité autorisée</label>
+                                        <input type="number" name="quantite_autorisee" min="1" max="{{ min($t->quantite_demandee, $dispo) }}" value="{{ min($t->quantite_demandee, $dispo) }}" required class="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                                    </div>
+                                    <button type="submit" {{ $dispo <= 0 ? 'disabled' : '' }} class="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <i class="ri-check-line mr-1"></i> Autoriser
+                                    </button>
+                                </form>
+
+                                <form action="{{ route('boutiquier.transferts-stock.refuser', $t) }}" method="POST" data-offline-sync="true" class="flex items-end" onsubmit="return confirm('Refuser ce transfert ?');">
+                                    @csrf
+                                    <input type="hidden" name="note" value="Refusé par la boutique source">
+                                    <button type="submit" class="px-4 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-lg hover:bg-slate-300 transition-colors">
+                                        <i class="ri-close-line mr-1"></i> Refuser
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    {{-- Transferts entre points de vente : ma boutique est la DESTINATION --}}
+    @if(!empty($aReceptionner) && $aReceptionner->isNotEmpty())
+        <div class="mb-6 glass-panel rounded-2xl p-6 bg-blue-50 border border-blue-200">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="ri-login-box-line text-2xl text-blue-600"></i>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Transferts à réceptionner (entrée de stock)</h3>
+                    <p class="text-sm text-slate-600">Confirmez la quantité réellement reçue. Le stock ne sera ajouté qu'après votre confirmation.</p>
+                </div>
+                <span class="ml-auto inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-xs font-semibold shrink-0">{{ $aReceptionner->count() }}</span>
+            </div>
+
+            <div class="space-y-4">
+                @foreach($aReceptionner as $t)
+                    <div class="p-4 rounded-2xl bg-white border border-blue-100">
+                        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                            <div class="min-w-0">
+                                <div class="font-bold text-slate-900">{{ $t->produit?->nom ?? 'Produit' }}@if($t->produit?->reference) <span class="text-xs text-slate-400 font-mono">({{ $t->produit->reference }})</span>@endif</div>
+                                <div class="text-sm text-slate-600 mt-1">
+                                    Envoyé : <strong>{{ $t->quantite_autorisee }}</strong> · Provenance : <strong>{{ $t->source?->nom ?? '—' }}</strong>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-1">Expédié {{ $t->authorized_at?->diffForHumans() }}</div>
+                            </div>
+
+                            <form action="{{ route('boutiquier.transferts-stock.receptionner', $t) }}" method="POST" data-offline-sync="true" class="flex items-end gap-2 shrink-0">
+                                @csrf
+                                <div>
+                                    <label class="block text-xs text-slate-500 mb-1">Quantité reçue</label>
+                                    <input type="number" name="quantite_recue" min="0" max="{{ $t->quantite_autorisee }}" value="{{ $t->quantite_autorisee }}" required class="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="ri-inbox-archive-line mr-1"></i> Confirmer la réception
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="glass-panel rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
