@@ -11,7 +11,7 @@
         <a href="javascript:window.print()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl shadow-sm transition-colors flex items-center">
             <i class="ri-printer-line mr-2"></i> Imprimer / PDF
         </a>
-        <a href="{{ route('admin.rapports.export.csv', ['mois' => $mois, 'annee' => $annee]) }}" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold rounded-xl shadow-sm transition-colors flex items-center">
+        <a href="{{ route('admin.rapports.export.csv', ['mois' => $mois, 'annee' => $annee, 'boutique_id' => $boutiqueId]) }}" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold rounded-xl shadow-sm transition-colors flex items-center">
             <i class="ri-file-excel-2-line mr-2"></i> Exporter Excel
         </a>
     </div>
@@ -109,7 +109,7 @@
     <div class="glass-panel p-6 rounded-2xl border-t-4 border-purple-500">
         <div class="flex justify-between items-start mb-4">
             <div>
-                <p class="text-sm font-medium text-slate-500">Pertes validées</p>
+                <p class="text-sm font-medium text-slate-500">Pertes validées (nombre)</p>
                 <h3 class="text-2xl font-black text-slate-800 mt-1">{{ $totalPertes }}</h3>
             </div>
             <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
@@ -121,7 +121,7 @@
     <div class="glass-panel p-6 rounded-2xl border-t-4 border-slate-500">
         <div class="flex justify-between items-start mb-4">
             <div>
-                <p class="text-sm font-medium text-slate-500">Pertes en attente</p>
+                <p class="text-sm font-medium text-slate-500">Pertes en attente (nombre)</p>
                 <h3 class="text-2xl font-black text-slate-800 mt-1">{{ $totalPertesPending }}</h3>
             </div>
             <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
@@ -133,7 +133,7 @@
     <div class="glass-panel p-6 rounded-2xl border-t-4 {{ $cashFlow >= 0 ? 'border-emerald-500' : 'border-red-500' }}">
         <div class="flex justify-between items-start mb-4">
             <div>
-                <p class="text-sm font-medium text-slate-500">Bénéfice Net (Flux)</p>
+                <p class="text-sm font-medium text-slate-500" title="Ventes moins dépenses et achats. Ce n'est pas le bénéfice : voir le rapport Bénéfices.">Flux de trésorerie</p>
                 <h3 class="text-2xl font-black {{ $cashFlow >= 0 ? 'text-emerald-600' : 'text-red-600' }} mt-1">
                     {{ $cashFlow >= 0 ? '+' : '' }}{{ number_format($cashFlow, 0, ',', ' ') }} {{ param("currency") }}
                 </h3>
@@ -304,11 +304,11 @@
                                             <button type="button" @click="open = !open" class="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold">Voir détails</button>
                                             <form action="{{ route('admin.rapports.depenses.approve', $depense) }}" method="POST" class="inline">
                                                 @csrf
-                                                <button type="submit" class="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-black rounded-xl text-sm font-semibold">Valider</button>
+                                                <button type="submit" class="w-full px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold">Valider</button>
                                             </form>
                                         <form action="{{ route('admin.rapports.depenses.reject', $depense) }}" method="POST" class="inline">
                                             @csrf
-                                                <button type="submit" class="w-full px-3 py-2 bg-rose-600 hover:bg-rose-700 text-black rounded-xl text-sm font-semibold">Rejeter</button>
+                                                <button type="submit" class="w-full px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold">Rejeter</button>
                                             </form>
                                         </div>
                                     </td>
@@ -379,7 +379,17 @@
                             <tbody x-data="{ open: false }" class="border-b border-slate-100 hover:bg-slate-50/50 align-top">
                                 <tr>
                                     <td class="py-3 font-medium text-slate-700">{{ $perte->boutique->nom ?? 'Boutique inconnue' }} / {{ $perte->produit->nom ?? 'Produit inconnu' }}</td>
-                                    <td class="py-3 font-bold text-slate-800">{{ $perte->quantite }}</td>
+                                    @php $dispo = $stockDisponiblePertes[$perte->id] ?? 0; @endphp
+                                    <td class="py-3 font-bold text-slate-800">
+                                        {{ $perte->quantite }}
+                                        @if($dispo < $perte->quantite)
+                                            <span class="block mt-1 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-bold" title="La validation sera refusée tant que le stock ne couvre pas la perte">
+                                                <i class="ri-alert-line mr-1"></i> {{ $dispo }} en stock
+                                            </span>
+                                        @else
+                                            <span class="block text-[11px] font-normal text-slate-400">{{ $dispo }} en stock</span>
+                                        @endif
+                                    </td>
                                     <td class="py-3 text-slate-500">{{ $perte->user->nom_utilisateur ?? '—' }}</td>
                                     <td class="py-3">
                                         <div class="flex flex-col gap-2">
@@ -390,7 +400,7 @@
                                             </form>
                                         <form action="{{ route('admin.rapports.pertes.reject', $perte) }}" method="POST" class="inline">
                                             @csrf
-                                                <button type="submit" class="w-full px-3 py-2 bg-rose-600 hover:bg-rose-700 text-black rounded-xl text-sm font-semibold">Rejeter</button>
+                                                <button type="submit" class="w-full px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold">Rejeter</button>
                                             </form>
                                         </div>
                                     </td>
