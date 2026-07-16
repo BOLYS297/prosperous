@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 class ApprovePerte implements ShouldQueue
@@ -20,24 +21,38 @@ class ApprovePerte implements ShouldQueue
 
     public function handle(): void
     {
-        if ($this->perte->statut !== 'pending') {
+        // Verrou + re-vérification du statut : une perte ne peut pas être validée
+        // deux fois, et le stock ne peut pas être sorti deux fois.
+        $sortie = DB::transaction(function () {
+            $perte = Perte::where('id', $this->perte->id)->lockForUpdate()->first();
+
+            if (! $perte || $perte->statut !== 'pending') {
+                return false;
+            }
+
+            // Stock FIFO : le disponible est réparti sur PLUSIEURS lots. Lire un
+            // seul lot (->first()) sous-estimait le stock et bloquait la
+            // validation ; décrémenter ce seul lot laissait les autres intacts.
+            if (Stock::totalFor($perte->boutique_id, $perte->produit_id) < $perte->quantite) {
+                return false;
+            }
+
+            Stock::reduceQuantity($perte->boutique_id, $perte->produit_id, $perte->quantite);
+
+            $perte->update([
+                'statut' => 'approved',
+                'admin_id' => $this->adminId,
+                'validated_at' => now(),
+            ]);
+
+            return true;
+        });
+
+        if (! $sortie) {
             return;
         }
 
-        $stock = Stock::where('boutique_id', $this->perte->boutique_id)
-            ->where('produit_id', $this->perte->produit_id)
-            ->first();
-
-        if (!$stock || $stock->quantite < $this->perte->quantite) {
-            return;
-        }
-
-        $stock->decrement('quantite', $this->perte->quantite);
-        $this->perte->update([
-            'statut' => 'approved',
-            'admin_id' => $this->adminId,
-            'validated_at' => now(),
-        ]);
+        $this->perte->refresh();
 
         if ($this->perte->user) {
             Notification::send($this->perte->user, new AdminValidationNotification(
