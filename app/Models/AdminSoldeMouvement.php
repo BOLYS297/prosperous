@@ -25,9 +25,12 @@ class AdminSoldeMouvement extends Model
 
     public const LIBELLES = [
         'recette' => 'Recette encaissée',
+        'approvisionnement' => 'Approvisionnement en cash',
+        'avance' => 'Avance à rembourser',
         'retrait' => 'Retrait',
         'achat' => 'Achat payé',
         'depense' => 'Dépense',
+        'salaire' => 'Salaire payé',
         'remboursement' => 'Remboursement de dette',
     ];
 

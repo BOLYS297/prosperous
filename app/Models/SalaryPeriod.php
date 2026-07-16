@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use App\Models\Boutique;
 use App\Models\Deduction;
 use App\Models\User;
 use App\Models\VenteLigne;
@@ -19,11 +20,57 @@ class SalaryPeriod extends Model
         'deductions',
         'net_salary',
         'carryover_next',
+        'status',
+        'paid_amount',
+        'paid_at',
+        'paid_by',
+        'payment_source_type',
+        'payment_source_id',
     ];
+
+    protected $casts = [
+        'primes' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'paid_at' => 'datetime',
+    ];
+
+    // Sans cette valeur par défaut, une période fraîchement créée par
+    // updateOrCreate n'a pas de statut en mémoire (il vient du défaut MySQL) :
+    // estPaye() interrogerait alors une valeur nulle.
+    protected $attributes = [
+        'status' => self::STATUT_EN_ATTENTE,
+    ];
+
+    public const STATUT_EN_ATTENTE = 'en_attente';
+    public const STATUT_PAYE = 'paye';
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function paidBy()
+    {
+        return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    public function estPaye(): bool
+    {
+        return $this->status === self::STATUT_PAYE;
+    }
+
+    /** Libellé de la source du règlement : « Solde personnel » ou le nom de la boutique. */
+    public function getSourceLabelAttribute(): ?string
+    {
+        if (! $this->estPaye()) {
+            return null;
+        }
+
+        if ($this->payment_source_type === 'admin') {
+            return 'Solde personnel';
+        }
+
+        return Boutique::find($this->payment_source_id)?->nom ?? 'Point de vente supprimé';
     }
 
     public static function generateForPeriod(string $period)
@@ -68,6 +115,14 @@ class SalaryPeriod extends Model
 
     public static function createOrUpdateForUserAndPeriod(User $user, string $period): self
     {
+        // Un mois déjà réglé est FIGÉ : le recalcul tourne à chaque affichage de
+        // la paie, et sans ce garde-fou une déduction validée ou une vente
+        // enregistrée après le paiement réécrirait un montant déjà versé.
+        $existant = self::where('user_id', $user->id)->where('period', $period)->first();
+        if ($existant && $existant->estPaye()) {
+            return $existant;
+        }
+
         $date = Carbon::createFromFormat('Y-m', $period)->startOfMonth();
         $year = $date->year;
         $month = $date->month;

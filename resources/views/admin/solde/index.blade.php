@@ -96,6 +96,58 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    {{-- Approvisionnement du solde personnel : simple ou sous forme de dette --}}
+    <div class="glass-panel rounded-2xl p-6" x-data="{ mode: 'simple' }">
+        <h2 class="text-xl font-bold text-slate-800 mb-2 flex items-center">
+            <i class="ri-hand-coin-line text-2xl text-emerald-600 mr-2"></i> Approvisionner mon solde
+        </h2>
+        <p class="text-sm text-slate-500 mb-4">Versez du cash sur votre solde personnel, définitivement ou sous forme de dette à rembourser.</p>
+
+        <form action="{{ route('admin.solde.crediter') }}" method="POST" class="space-y-3">
+            @csrf
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Montant ({{ param("currency") }})</label>
+                <input type="number" name="montant" min="1" step="1" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <label class="cursor-pointer">
+                    <input type="radio" name="mode" value="simple" x-model="mode" class="sr-only" checked>
+                    <div class="p-3 rounded-lg border-2 text-center transition-colors"
+                        :class="mode === 'simple' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500'">
+                        <i class="ri-cash-line block text-xl mb-1"></i>
+                        <span class="text-xs font-bold">Simple</span>
+                        <span class="block text-[10px]">Rien à rembourser</span>
+                    </div>
+                </label>
+                <label class="cursor-pointer">
+                    <input type="radio" name="mode" value="dette" x-model="mode" class="sr-only">
+                    <div class="p-3 rounded-lg border-2 text-center transition-colors"
+                        :class="mode === 'dette' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-500'">
+                        <i class="ri-scales-3-line block text-xl mb-1"></i>
+                        <span class="text-xs font-bold">Dette</span>
+                        <span class="block text-[10px]">À rembourser molo molo</span>
+                    </div>
+                </label>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif (facultatif)</label>
+                <input type="text" name="motif" maxlength="255" placeholder="Approvisionnement en cash"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <p class="text-xs text-slate-400" x-show="mode === 'dette'" x-cloak>
+                <i class="ri-information-line"></i> Votre solde est crédité immédiatement, et une avance s'ouvre : vous la remboursez progressivement depuis ce même solde.
+            </p>
+
+            <button type="submit" class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">
+                <i class="ri-add-line mr-1"></i> Créditer mon solde
+            </button>
+        </form>
+    </div>
+
     {{-- Retrait --}}
     <div class="glass-panel rounded-2xl p-6">
         <h2 class="text-xl font-bold text-slate-800 mb-2 flex items-center">
@@ -149,6 +201,53 @@
         @endforelse
     </div>
 </div>
+
+{{-- Avances personnelles à rembourser --}}
+@if($avancesAdmin->isNotEmpty())
+    <div class="glass-panel rounded-2xl p-6 mb-8 border-l-4 border-amber-500">
+        <div class="flex items-baseline justify-between gap-4 mb-1">
+            <h2 class="text-xl font-bold text-slate-800 flex items-center">
+                <i class="ri-scales-3-line text-2xl text-amber-600 mr-2"></i> Mes avances à rembourser
+            </h2>
+            <span class="text-xl font-black text-amber-600">{{ number_format($avancesRestant, 0, ',', ' ') }} {{ param("currency") }}</span>
+        </div>
+        <p class="text-sm text-slate-500 mb-4">Cash crédité sur votre solde sous forme de dette. Remboursez progressivement, selon ce que vous avez en caisse.</p>
+
+        <div class="space-y-3">
+            @foreach($avancesAdmin as $avance)
+                <div class="p-4 bg-white/50 border border-amber-200 rounded-xl">
+                    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+                        <div>
+                            <div class="font-bold text-slate-800">{{ $avance->motif }}</div>
+                            <div class="text-xs text-slate-500 mt-0.5">
+                                Avance du {{ $avance->created_at->translatedFormat('d/m/Y') }} —
+                                {{ number_format($avance->montant, 0, ',', ' ') }} {{ param("currency") }} au total,
+                                déjà remboursé {{ number_format($avance->montant_rembourse, 0, ',', ' ') }}.
+                            </div>
+                            <div class="text-sm font-black text-amber-700 mt-1">
+                                Reste : {{ number_format($avance->reste_a_rembourser, 0, ',', ' ') }} {{ param("currency") }}
+                            </div>
+                        </div>
+
+                        <form action="{{ route('admin.solde.avances.rembourser', $avance) }}" method="POST" class="flex items-end gap-2 shrink-0">
+                            @csrf
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Montant</label>
+                                <input type="number" name="montant" min="1" step="1"
+                                    max="{{ (int) min($avance->reste_a_rembourser, (float) $admin->solde_personnel) }}"
+                                    value="{{ (int) min($avance->reste_a_rembourser, (float) $admin->solde_personnel) }}" required
+                                    class="w-32 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm font-medium">
+                                Rembourser
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
 
 {{-- Historique --}}
 <div class="glass-panel rounded-2xl overflow-hidden">

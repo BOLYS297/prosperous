@@ -42,6 +42,7 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminController::class, 'index'])->name('dashboard');
         Route::get('payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('payroll.index');
+        Route::post('payroll/{payroll}/payer', [\App\Http\Controllers\Admin\PayrollController::class, 'payer'])->name('payroll.payer');
         Route::post('dashboard/deduction', [\App\Http\Controllers\Admin\AdminController::class, 'updateDeductionAmount'])->name('dashboard.deduction.update');
         Route::post('deductions/{deduction}/approve', [\App\Http\Controllers\Admin\AdminController::class, 'approveDeduction'])->name('deductions.approve');
         Route::post('deductions/{deduction}/reject', [\App\Http\Controllers\Admin\AdminController::class, 'rejectDeduction'])->name('deductions.reject');
@@ -68,7 +69,9 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         // Solde personnel de l'admin : recettes, retraits, remboursements
         Route::get('solde', [\App\Http\Controllers\Admin\SoldeController::class, 'index'])->name('solde.index');
         Route::post('solde/recuperer', [\App\Http\Controllers\Admin\SoldeController::class, 'recuperer'])->name('solde.recuperer');
+        Route::post('solde/crediter', [\App\Http\Controllers\Admin\SoldeController::class, 'crediter'])->name('solde.crediter');
         Route::post('solde/retirer', [\App\Http\Controllers\Admin\SoldeController::class, 'retirer'])->name('solde.retirer');
+        Route::post('solde/avances/{avance}/rembourser', [\App\Http\Controllers\Admin\SoldeController::class, 'rembourserAvance'])->name('solde.avances.rembourser');
         Route::post('solde/achats/{achat}/rembourser', [\App\Http\Controllers\Admin\SoldeController::class, 'rembourserAchat'])->name('solde.achats.rembourser');
 
         // Boutiques / Trésorerie : approvisionnement du solde
