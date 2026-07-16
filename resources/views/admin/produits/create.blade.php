@@ -87,6 +87,21 @@
             </p>
         </div>
 
+        <div class="mb-8">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente hors heures ({{ param("currency") }})</label>
+            <div class="relative max-w-xs">
+                <input type="number" step="0.01" min="0" name="prix_vente_hors_heures" value="{{ old('prix_vente_hors_heures', $produit->prix_vente_hors_heures ?? '') }}" class="w-full pl-4 pr-16 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optionnel">
+                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
+                    {{ param("currency") }}
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">
+                Prix appliqué <strong>en dehors des heures d'ouverture</strong> ({{ \App\Support\TarifHoraire::plageOuverture() }}).
+                La différence avec le prix de vente revient à l'employé qui réalise la vente.
+                Laissez vide pour appliquer la majoration par défaut ({{ param('majoration_hors_heures_percent', 0) }} %) définie dans <strong>Paramètres</strong>.
+            </p>
+        </div>
+
         <div class="flex justify-end">
             <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg transform hover:-translate-y-0.5">
                 {{ isset($produit) ? 'Mettre à jour le produit' : 'Enregistrer le produit' }}

@@ -11,15 +11,19 @@ class VenteLigne extends Model
         'produit_id',
         'quantite',
         'prix_unitaire',
+        'prix_unitaire_standard',
         'prix_achat_unitaire',
         'commission_mecanicien',
+        'prime_employe',
         'est_grossiste',
     ];
 
     protected $casts = [
         'prix_unitaire' => 'decimal:2',
+        'prix_unitaire_standard' => 'decimal:2',
         'prix_achat_unitaire' => 'decimal:2',
         'commission_mecanicien' => 'decimal:2',
+        'prime_employe' => 'decimal:2',
     ];
 
     /** Bénéfice de la ligne = (prix de vente - coût figé) x quantité. */

@@ -51,6 +51,25 @@
     </div>
 </div>
 
+@if($global['majoration_hors_heures'] > 0)
+    <div class="mb-8 glass-panel rounded-2xl p-5 border-l-4 border-indigo-500">
+        <div class="flex items-start gap-3">
+            <i class="ri-moon-clear-line text-2xl text-indigo-600 mt-0.5"></i>
+            <div class="flex-1">
+                <div class="flex items-baseline justify-between gap-4">
+                    <h3 class="font-bold text-slate-800">Dont majoration hors heures</h3>
+                    <span class="text-xl font-black text-indigo-600">{{ number_format($global['majoration_hors_heures'], 0, ',', ' ') }} {{ param("currency") }}</span>
+                </div>
+                <p class="text-sm text-slate-500 mt-1">
+                    Ce montant est compris dans le bénéfice ci-dessus, mais il sera <strong>reversé aux employés</strong>
+                    en prime d'heures supplémentaires. Bénéfice réellement conservé :
+                    <strong class="text-slate-800">{{ number_format($global['benefice'] - $global['majoration_hors_heures'], 0, ',', ' ') }} {{ param("currency") }}</strong>.
+                </p>
+            </div>
+        </div>
+    </div>
+@endif
+
 {{-- Tendance 7 jours --}}
 <div class="glass-panel rounded-2xl p-6 mb-8">
     <h2 class="text-lg font-bold text-slate-800 mb-4">Bénéfice des 7 derniers jours</h2>

@@ -9,7 +9,11 @@ class Vente extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['boutique_id', 'user_id', 'montant_total', 'grossiste_id', 'mecanicien_id'];
+    protected $fillable = ['boutique_id', 'user_id', 'montant_total', 'grossiste_id', 'mecanicien_id', 'hors_heures'];
+
+    protected $casts = [
+        'hors_heures' => 'boolean',
+    ];
 
     /** Mécanicien au nom de qui la vente client a été enregistrée. */
     public function mecanicien()

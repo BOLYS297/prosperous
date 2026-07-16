@@ -36,6 +36,7 @@
                     <th class="p-4 font-semibold">Employé</th>
                     <th class="p-4 font-semibold">Rôle</th>
                     <th class="p-4 font-semibold">Salaire normal</th>
+                    <th class="p-4 font-semibold">Primes h. sup</th>
                     <th class="p-4 font-semibold">Salaire mensuel</th>
                     <th class="p-4 font-semibold">Déductions</th>
                     <th class="p-4 font-semibold">Report précédent</th>
@@ -48,8 +49,17 @@
                     <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                         <td class="p-4 font-medium text-slate-800">{{ $payroll->user->nom_utilisateur }}</td>
                         <td class="p-4">{{ ucfirst($payroll->user->role) }}</td>
-                        <td class="p-4">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
-                        <td class="p-4">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">{{ number_format($payroll->gross_salary - $payroll->primes, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">
+                            @if($payroll->primes > 0)
+                                <span class="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold" title="Majorations encaissées hors heures d'ouverture">
+                                    + {{ number_format($payroll->primes, 0, ',', ' ') }} {{ param("currency") }}
+                                </span>
+                            @else
+                                <span class="text-slate-300">—</span>
+                            @endif
+                        </td>
+                        <td class="p-4 font-semibold">{{ number_format($payroll->gross_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4">{{ number_format($payroll->deductions, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4">{{ number_format($payroll->carryover_previous, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4 font-semibold text-slate-900">{{ number_format($payroll->net_salary, 0, ',', ' ') }} {{ param("currency") }}</td>

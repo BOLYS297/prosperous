@@ -24,6 +24,12 @@ class Setting extends Model
         'ticket_footer' => 'Merci de votre visite !',
         // Pourcentage de commission proposé par défaut à la création d'un mécanicien.
         'mecanicien_commission_percent' => '10',
+        // Heures d'ouverture du point de vente : hors de cette plage, le prix
+        // majoré s'applique et la différence revient à l'employé.
+        'heure_ouverture' => '07:00',
+        'heure_fermeture' => '19:00',
+        // Majoration appliquée hors heures aux produits SANS prix hors heures saisi.
+        'majoration_hors_heures_percent' => '20',
         'logo_path' => '',
         'banner_path' => '',
     ];

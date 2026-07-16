@@ -33,6 +33,7 @@ class BeneficeController extends Controller
             'cout' => $parBoutique->sum('cout'),
             'benefice' => $parBoutique->sum(fn ($r) => $r->ca_calculable - $r->cout),
             'lignes_sans_cout' => $parBoutique->sum('lignes_sans_cout'),
+            'majoration_hors_heures' => $parBoutique->sum('majoration_hors_heures'),
             'nb_lignes' => $parBoutique->sum('nb_lignes'),
         ];
 
@@ -64,6 +65,9 @@ class BeneficeController extends Controller
             ->selectRaw('SUM(CASE WHEN vente_lignes.prix_achat_unitaire IS NOT NULL THEN vente_lignes.quantite * vente_lignes.prix_unitaire ELSE 0 END) as ca_calculable')
             ->selectRaw('SUM(CASE WHEN vente_lignes.prix_achat_unitaire IS NOT NULL THEN vente_lignes.quantite * vente_lignes.prix_achat_unitaire ELSE 0 END) as cout')
             ->selectRaw('SUM(CASE WHEN vente_lignes.prix_achat_unitaire IS NULL THEN 1 ELSE 0 END) as lignes_sans_cout')
+            // Majoration hors heures : encaissée par l'entreprise puis reversée à
+            // l'employé en prime -> à isoler pour ne pas gonfler la marge réelle.
+            ->selectRaw('SUM(COALESCE(vente_lignes.prime_employe, 0)) as majoration_hors_heures')
             ->selectRaw('COUNT(*) as nb_lignes')
             ->groupBy('ventes.boutique_id')
             ->get();

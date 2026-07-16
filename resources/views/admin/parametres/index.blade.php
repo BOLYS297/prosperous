@@ -74,6 +74,36 @@
         </div>
     </div>
 
+    <h2 class="text-xl font-bold text-slate-800 mt-8 mb-2 flex items-center">
+        <i class="ri-time-line text-2xl text-blue-600 mr-2"></i> Heures d'ouverture &amp; tarif hors heures
+    </h2>
+    <p class="text-sm text-slate-500 mb-6">
+        En dehors de cette plage, le point de vente applique automatiquement le <strong>prix hors heures</strong>.
+        La différence avec le prix normal est <strong>reversée à l'employé</strong> qui réalise la vente (heures supplémentaires),
+        cumulée et payée en fin de mois.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Heure d'ouverture <span class="text-rose-500">*</span></label>
+            <input type="time" name="heure_ouverture" required value="{{ old('heure_ouverture', $settings['heure_ouverture'] ?? '07:00') }}"
+                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p class="text-xs text-slate-400 mt-1">Avant cette heure, le tarif hors heures s'applique.</p>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Heure de fermeture <span class="text-rose-500">*</span></label>
+            <input type="time" name="heure_fermeture" required value="{{ old('heure_fermeture', $settings['heure_fermeture'] ?? '19:00') }}"
+                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p class="text-xs text-slate-400 mt-1">Le tarif hors heures démarre à la minute suivante.</p>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Majoration par défaut (%)</label>
+            <input type="number" step="0.01" min="0" max="500" name="majoration_hors_heures_percent" value="{{ old('majoration_hors_heures_percent', $settings['majoration_hors_heures_percent'] ?? 20) }}"
+                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p class="text-xs text-slate-400 mt-1">Appliquée aux produits <strong>sans</strong> prix hors heures saisi. 0 = aucune majoration.</p>
+        </div>
+    </div>
+
     <h2 class="text-xl font-bold text-slate-800 mt-8 mb-6 flex items-center">
         <i class="ri-image-line text-2xl text-blue-600 mr-2"></i> Images
     </h2>
