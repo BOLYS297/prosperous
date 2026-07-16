@@ -64,9 +64,10 @@ class VenteController extends Controller
         // synchronisée à 19h10 toucherait indûment la majoration hors heures).
         $venduA = $this->momentVente($request);
 
-        // Hors des heures d'ouverture : prix majoré, la différence revient au
-        // vendeur. Jamais sur une vente grossiste (tarifs négociés).
-        $horsHeures = ! $isGrossiste && \App\Support\TarifHoraire::estHorsHeures($venduA);
+        // Tranche horaire marquée « majorée » par l'admin : prix majoré, la
+        // différence revient au vendeur. Jamais sur une vente grossiste
+        // (tarifs négociés).
+        $horsHeures = ! $isGrossiste && \App\Support\TarifHoraire::estMajore($user, $venduA);
 
         // Un mécanicien ne peut être crédité que sur une vente CLIENT, et
         // seulement s'il appartient à cette boutique.

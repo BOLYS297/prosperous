@@ -2,35 +2,31 @@
 
 namespace App\Support;
 
+use App\Models\HoraireConnexion;
 use App\Models\Produit;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 
 /**
- * Tarification hors heures d'ouverture.
+ * Tarification des heures majorées.
  *
- * En dehors des heures d'ouverture (avant l'ouverture, après la fermeture), le
- * point de vente applique un prix MAJORÉ. La différence entre ce prix et le prix
- * normal ne revient pas à l'entreprise : elle est versée à l'employé qui réalise
- * la vente (heures supplémentaires), cumulée puis payée en fin de mois.
+ * Les heures ne sont JAMAIS codées en dur : elles proviennent des tranches
+ * horaires définies par l'admin (« Tranches horaires »), par rôle et par jour.
+ * Chaque tranche porte un type :
+ *   - normale : prix habituel ;
+ *   - majoree : prix majoré. La différence avec le prix normal ne revient pas à
+ *     l'entreprise mais à l'employé qui réalise la vente (heures supplémentaires),
+ *     cumulée puis payée en fin de mois.
  */
 class TarifHoraire
 {
     /**
-     * Le moment donné est-il hors des heures d'ouverture ?
-     * L'ouverture et la fermeture sont INCLUSES dans les heures normales :
-     * fermeture à 19:00 => la majoration démarre à 19:01.
+     * La vente de cet employé, à ce moment, tombe-t-elle dans une tranche majorée ?
      */
-    public static function estHorsHeures(?Carbon $moment = null): bool
+    public static function estMajore(User $user, ?Carbon $moment = null): bool
     {
-        $moment = $moment ?: Carbon::now();
-
-        $ouverture = self::heure('heure_ouverture', '07:00');
-        $fermeture = self::heure('heure_fermeture', '19:00');
-
-        $h = $moment->format('H:i');
-
-        return $h < $ouverture || $h > $fermeture;
+        return HoraireConnexion::estMajoreeAt($user, $moment);
     }
 
     /**
@@ -55,21 +51,19 @@ class TarifHoraire
         return round($prixStandard * (1 + $pct / 100), 2);
     }
 
-    /** Libellé des heures d'ouverture, pour l'affichage. */
-    public static function plageOuverture(): string
+    /** Tranche en cours pour cet employé (pour l'affichage au point de vente). */
+    public static function trancheCourante(User $user, ?Carbon $moment = null): ?HoraireConnexion
     {
-        return self::heure('heure_ouverture', '07:00') . ' – ' . self::heure('heure_fermeture', '19:00');
+        return HoraireConnexion::trancheAt($user, $moment);
     }
 
-    /** Normalise un réglage horaire au format H:i (tolère 7:00, 07:00:00...). */
-    protected static function heure(string $cle, string $defaut): string
+    /** Libellé d'une tranche : « 19:00 – 23:00 ». */
+    public static function libellePlage(?HoraireConnexion $tranche): string
     {
-        $valeur = trim((string) Setting::get($cle, $defaut));
-
-        try {
-            return Carbon::createFromFormat('H:i', substr($valeur, 0, 5))->format('H:i');
-        } catch (\Throwable $e) {
-            return $defaut;
+        if (! $tranche) {
+            return '—';
         }
+
+        return substr($tranche->heure_debut, 0, 5) . ' – ' . substr($tranche->heure_fin, 0, 5);
     }
 }

@@ -1,7 +1,10 @@
 @extends('layouts.boutiquier')
 
 @section('content')
-@php $horsHeures = \App\Support\TarifHoraire::estHorsHeures(); @endphp
+@php
+    $trancheCourante = \App\Support\TarifHoraire::trancheCourante(auth()->user());
+    $horsHeures = $trancheCourante && $trancheCourante->estMajoree();
+@endphp
 <div class="space-y-8">
     <div class="mb-8">
         <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Point de Vente</h2>
@@ -15,8 +18,8 @@
                 <div>
                     <h3 class="font-bold text-lg">Tarif hors heures actif</h3>
                     <p class="text-sm text-indigo-100 mt-1">
-                        Nous sommes en dehors des heures d'ouverture ({{ \App\Support\TarifHoraire::plageOuverture() }}) :
-                        les prix affichés sont <strong>majorés</strong> pour les ventes client.
+                        Votre tranche horaire en cours ({{ \App\Support\TarifHoraire::libellePlage($trancheCourante) }}) est en
+                        <strong>tarif majoré</strong> : les prix affichés sont majorés pour les ventes client.
                     </p>
                     <p class="text-sm font-semibold text-white mt-1">
                         <i class="ri-hand-coin-line mr-1"></i> La majoration vous revient : elle est cumulée et vous sera payée en fin de mois.

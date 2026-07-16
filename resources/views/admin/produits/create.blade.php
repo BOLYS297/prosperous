@@ -96,7 +96,8 @@
                 </div>
             </div>
             <p class="text-xs text-slate-500 mt-2">
-                Prix appliqué <strong>en dehors des heures d'ouverture</strong> ({{ \App\Support\TarifHoraire::plageOuverture() }}).
+                Prix appliqué sur les <strong>tranches horaires marquées « tarif majoré »</strong>
+                (<a href="{{ route('admin.horaires.index') }}" class="underline">Tranches horaires</a>).
                 La différence avec le prix de vente revient à l'employé qui réalise la vente.
                 Laissez vide pour appliquer la majoration par défaut ({{ param('majoration_hors_heures_percent', 0) }} %) définie dans <strong>Paramètres</strong>.
             </p>

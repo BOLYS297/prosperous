@@ -88,6 +88,7 @@ Route::middleware(['auth', 'check.horaire', 'check.device', 'log.activity'])->gr
         Route::get('horaires', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'index'])->name('horaires.index');
         Route::post('horaires', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'store'])->name('horaires.store');
         Route::patch('horaires/{horaireConnexion}/toggle', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'toggle'])->name('horaires.toggle');
+        Route::patch('horaires/{horaireConnexion}/type', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'basculerType'])->name('horaires.type');
         Route::delete('horaires/{horaireConnexion}', [\App\Http\Controllers\Admin\HoraireConnexionController::class, 'destroy'])->name('horaires.destroy');
 
         // Profil Admin (modifier ses identifiants)
