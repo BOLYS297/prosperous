@@ -14,6 +14,7 @@ class SalaryPeriod extends Model
         'user_id',
         'period',
         'gross_salary',
+        'primes',
         'carryover_previous',
         'deductions',
         'net_salary',
@@ -33,6 +34,21 @@ class SalaryPeriod extends Model
         return $employees->map(function (User $user) use ($period) {
             return self::createOrUpdateForUserAndPeriod($user, $period);
         });
+    }
+
+    /**
+     * Total des primes « hors heures » d'un employé sur un mois donné :
+     * majorations encaissées sur les ventes qu'il a lui-même enregistrées.
+     */
+    public static function primesForUserAndPeriod(User $user, int $year, int $month): float
+    {
+        return (float) VenteLigne::query()
+            ->join('ventes', 'ventes.id', '=', 'vente_lignes.vente_id')
+            ->where('ventes.user_id', $user->id)
+            ->whereNull('ventes.deleted_at')
+            ->whereYear('ventes.created_at', $year)
+            ->whereMonth('ventes.created_at', $month)
+            ->sum('vente_lignes.prime_employe');
     }
 
     /**
@@ -69,9 +85,14 @@ class SalaryPeriod extends Model
 
         // Le mécanicien n'a pas de salaire de base : son brut correspond au
         // total des commissions gagnées sur les ventes client du mois.
-        $grossSalary = $user->role === 'mecanicien'
+        $baseSalary = $user->role === 'mecanicien'
             ? self::commissionsForUserAndPeriod($user, $year, $month)
             : $user->monthly_salary;
+
+        // Primes « hors heures » : majorations encaissées sur ses propres ventes.
+        $primes = self::primesForUserAndPeriod($user, $year, $month);
+
+        $grossSalary = $baseSalary + $primes;
 
         $totalDeductions = $previousCarryover + $approvedDeductions;
         $netSalary = max(0, $grossSalary - $totalDeductions);
@@ -81,6 +102,7 @@ class SalaryPeriod extends Model
             ['user_id' => $user->id, 'period' => $period],
             [
                 'gross_salary' => $grossSalary,
+                'primes' => $primes,
                 'carryover_previous' => $previousCarryover,
                 'deductions' => $approvedDeductions,
                 'net_salary' => $netSalary,

@@ -10,6 +10,35 @@ use Illuminate\Support\Facades\DB;
 
 class VenteController extends Controller
 {
+    /**
+     * Heure retenue pour la tarification hors heures.
+     *
+     * Par défaut l'heure du serveur. On n'accepte l'heure transmise par la caisse
+     * QUE s'il s'agit d'un rejeu hors-ligne (en-tête X-Offline-Sync), et
+     * uniquement si elle est plausible : ni dans le futur, ni vieille de plus de
+     * 7 jours. Cela évite qu'une heure forgée déclenche une prime indue.
+     */
+    protected function momentVente(Request $request): \Illuminate\Support\Carbon
+    {
+        $maintenant = \Illuminate\Support\Carbon::now();
+
+        if (! $request->hasHeader('X-Offline-Sync') || ! $request->filled('vendu_a')) {
+            return $maintenant;
+        }
+
+        try {
+            $venduA = \Illuminate\Support\Carbon::parse($request->input('vendu_a'));
+        } catch (\Throwable $e) {
+            return $maintenant;
+        }
+
+        if ($venduA->greaterThan($maintenant) || $venduA->lessThan($maintenant->copy()->subDays(7))) {
+            return $maintenant;
+        }
+
+        return $venduA;
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -21,12 +50,24 @@ class VenteController extends Controller
             'is_grossiste' => 'nullable|boolean',
             'grossiste_id' => 'nullable|exists:grossistes,id',
             'mecanicien_id' => 'nullable|exists:users,id',
+            'vendu_a' => 'nullable|date',
         ]);
 
         $user = Auth::user();
         $boutiqueId = $user->boutique_id;
         $isGrossiste = $request->boolean('is_grossiste');
         $grossisteId = $isGrossiste ? $request->grossiste_id : null;
+
+        // Moment de la vente : l'heure du SERVEUR fait foi. Exception : lors du
+        // rejeu d'une vente enregistrée hors-ligne, on retient l'heure de la
+        // caisse au moment de l'encaissement (sinon une vente de 18h50
+        // synchronisée à 19h10 toucherait indûment la majoration hors heures).
+        $venduA = $this->momentVente($request);
+
+        // Tranche horaire marquée « majorée » par l'admin : prix majoré, la
+        // différence revient au vendeur. Jamais sur une vente grossiste
+        // (tarifs négociés).
+        $horsHeures = ! $isGrossiste && \App\Support\TarifHoraire::estMajore($user, $venduA);
 
         // Un mécanicien ne peut être crédité que sur une vente CLIENT, et
         // seulement s'il appartient à cette boutique.
@@ -58,7 +99,7 @@ class VenteController extends Controller
         // le prix grossiste par défaut de chaque produit (lot, sinon prix client).
 
         try {
-        DB::transaction(function () use ($lignesData, $user, $boutiqueId, $isGrossiste, $grossisteId, $request, $mecanicien, $commissionPct) {
+        DB::transaction(function () use ($lignesData, $user, $boutiqueId, $isGrossiste, $grossisteId, $request, $mecanicien, $commissionPct, $horsHeures) {
             $total = 0;
             $vente = \App\Models\Vente::create([
                 'boutique_id' => $boutiqueId,
@@ -66,6 +107,7 @@ class VenteController extends Controller
                 'montant_total' => 0,
                 'grossiste_id' => $grossisteId,
                 'mecanicien_id' => $mecanicien?->id,
+                'hors_heures' => $horsHeures,
             ]);
 
             foreach ($lignesData as $ligneData) {
@@ -148,16 +190,32 @@ class VenteController extends Controller
                     }
 
                     if ($prodQty > 0) {
-                        $avgUnitPrice = $prodTotal / $prodQty;
-                        $total += $prodTotal;
+                        // Prix NORMAL de référence (heures d'ouverture).
+                        $prixStandard = $prodTotal / $prodQty;
+                        $avgUnitPrice = $prixStandard;
+                        $prime = null;
+
+                        // Hors heures : on facture le prix majoré et la différence
+                        // revient à l'employé qui réalise la vente.
+                        if ($horsHeures) {
+                            $prixMajore = \App\Support\TarifHoraire::prixMajore($produit, $prixStandard);
+                            if ($prixMajore > $prixStandard) {
+                                $avgUnitPrice = $prixMajore;
+                                $prime = ($prixMajore - $prixStandard) * $prodQty;
+                            }
+                        }
+
+                        $total += $avgUnitPrice * $prodQty;
 
                         // Commission mécanicien : pourcentage du BÉNÉFICE de l'article,
                         // uniquement sur une vente client attribuée à un mécanicien.
+                        // Elle se calcule sur le prix STANDARD : la majoration hors
+                        // heures appartient au vendeur, pas au mécanicien.
                         // Sans coût connu, le bénéfice est incalculable : pas de commission
                         // (sinon elle porterait sur le chiffre d'affaires entier).
                         $commission = null;
                         if ($mecanicien && ! $isGrossiste && $commissionPct > 0 && $avgCost !== null) {
-                            $benefice = ($avgUnitPrice - $avgCost) * $prodQty;
+                            $benefice = ($prixStandard - $avgCost) * $prodQty;
                             $commission = max(0, $benefice * $commissionPct / 100);
                         }
 
@@ -166,8 +224,10 @@ class VenteController extends Controller
                             'produit_id' => $produit->id,
                             'quantite' => $prodQty,
                             'prix_unitaire' => $avgUnitPrice,
+                            'prix_unitaire_standard' => $prixStandard,
                             'prix_achat_unitaire' => $avgCost,
                             'commission_mecanicien' => $commission,
+                            'prime_employe' => $prime,
                             'est_grossiste' => $isGrossiste,
                         ]);
                     }

@@ -24,6 +24,10 @@ class Setting extends Model
         'ticket_footer' => 'Merci de votre visite !',
         // Pourcentage de commission proposé par défaut à la création d'un mécanicien.
         'mecanicien_commission_percent' => '10',
+        // Les heures majorées ne sont PAS réglées ici : elles proviennent des
+        // tranches horaires marquées « majorée » (admin > Tranches horaires).
+        // Majoration appliquée hors heures aux produits SANS prix hors heures saisi.
+        'majoration_hors_heures_percent' => '20',
         'logo_path' => '',
         'banner_path' => '',
     ];

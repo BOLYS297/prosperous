@@ -29,6 +29,7 @@ class HoraireConnexionController extends Controller
             'jour_semaine' => 'required|integer|min:0|max:6',
             'heure_debut' => 'required|date_format:H:i',
             'heure_fin' => 'required|date_format:H:i|after:heure_debut',
+            'type' => 'required|in:normale,majoree',
         ]);
 
         HoraireConnexion::create([
@@ -36,6 +37,7 @@ class HoraireConnexionController extends Controller
             'jour_semaine' => $request->jour_semaine,
             'heure_debut' => $request->heure_debut . ':00',
             'heure_fin' => $request->heure_fin . ':00',
+            'type' => $request->type,
             'actif' => true,
         ]);
 
@@ -50,6 +52,25 @@ class HoraireConnexionController extends Controller
         $horaireConnexion->delete();
 
         return redirect()->route('admin.horaires.index')->with('success', 'Tranche horaire supprimée avec succès.');
+    }
+
+    /**
+     * Bascule une tranche entre tarif normal et tarif majoré.
+     */
+    public function basculerType(HoraireConnexion $horaireConnexion)
+    {
+        $horaireConnexion->update([
+            'type' => $horaireConnexion->estMajoree()
+                ? HoraireConnexion::TYPE_NORMALE
+                : HoraireConnexion::TYPE_MAJOREE,
+        ]);
+
+        return redirect()->route('admin.horaires.index')->with(
+            'success',
+            $horaireConnexion->estMajoree()
+                ? 'Tranche passée en tarif majoré : les ventes de cette plage seront majorées au profit de l\'employé.'
+                : 'Tranche repassée en tarif normal.'
+        );
     }
 
     /**

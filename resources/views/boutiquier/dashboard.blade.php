@@ -1,11 +1,33 @@
 @extends('layouts.boutiquier')
 
 @section('content')
+@php
+    $trancheCourante = \App\Support\TarifHoraire::trancheCourante(auth()->user());
+    $horsHeures = $trancheCourante && $trancheCourante->estMajoree();
+@endphp
 <div class="space-y-8">
     <div class="mb-8">
         <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Point de Vente</h2>
         <p class="text-black">Boutique : <span class="font-bold">{{ $boutique ? $boutique->nom : 'Aucune boutique assignée' }}</span> — {{ now()->translatedFormat('l d F Y') }}</p>
     </div>
+
+    @if($horsHeures)
+        <div class="mb-6 rounded-2xl bg-indigo-600 p-5 shadow-lg text-white">
+            <div class="flex items-start gap-3">
+                <i class="ri-moon-clear-line text-3xl mt-0.5"></i>
+                <div>
+                    <h3 class="font-bold text-lg">Tarif hors heures actif</h3>
+                    <p class="text-sm text-indigo-100 mt-1">
+                        Votre tranche horaire en cours ({{ \App\Support\TarifHoraire::libellePlage($trancheCourante) }}) est en
+                        <strong>tarif majoré</strong> : les prix affichés sont majorés pour les ventes client.
+                    </p>
+                    <p class="text-sm font-semibold text-white mt-1">
+                        <i class="ri-hand-coin-line mr-1"></i> La majoration vous revient : elle est cumulée et vous sera payée en fin de mois.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if(isset($shiftWarning) && $shiftWarning)
         <div class="mb-6 rounded-2xl bg-amber-100 border border-amber-200 p-5 shadow-sm text-amber-900">
@@ -282,6 +304,9 @@
                 <input type="hidden" name="is_grossiste" id="checkout-is-grossiste" value="0">
                 <input type="hidden" name="grossiste_id" id="checkout-grossiste-id" value="">
                 <input type="hidden" name="mecanicien_id" id="checkout-mecanicien-id" value="">
+                {{-- Heure de l'encaissement : sert uniquement au rejeu d'une vente
+                     enregistrée hors-ligne (le serveur fait foi en ligne). --}}
+                <input type="hidden" name="vendu_a" id="checkout-vendu-a" value="">
                 <div id="checkout-line-inputs"></div>
                 <button id="checkout-button" type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     Enregistrer le ticket
@@ -299,7 +324,7 @@
                 // Prix grossiste du lot actif (le plus ancien en stock) — utilisé par le point de vente
                 $lotActifGrossiste = optional($produit->stocks->where('quantite', '>', 0)->sortBy('created_at')->first())->prix_vente_grossiste_unitaire;
             @endphp
-            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $produit->prix_vente ?? 0 }}" data-grossiste-price="{{ $produit->getRawOriginal('prix_vente_grossiste') ?? $lotActifGrossiste ?? '' }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
+            <div data-produit-id="{{ $produit->id }}" data-client-price="{{ $horsHeures ? \App\Support\TarifHoraire::prixMajore($produit, (float) ($produit->prix_vente ?? 0)) : ($produit->prix_vente ?? 0) }}" data-client-price-standard="{{ $produit->prix_vente ?? 0 }}" data-grossiste-price="{{ $produit->getRawOriginal('prix_vente_grossiste') ?? $lotActifGrossiste ?? '' }}" data-in-stock="{{ $enStock ? 1 : 0 }}" data-search="{{ \Illuminate\Support\Str::lower(trim($produit->nom . ' ' . $produit->reference)) }}" class="product-card glass-panel rounded-2xl p-4 bg-white shadow-sm transition-all duration-200 hover:shadow-lg {{ $enStock ? 'cursor-default' : 'opacity-50 cursor-not-allowed' }}">
                 <div class="flex-1">
                     @if($produit->image)
                         <img src="{{ asset('storage/' . $produit->image) }}" alt="{{ $produit->nom }}" class="object-cover rounded-2xl mb-4 w-50 h-40" style="max-height: 12rem;">
@@ -411,6 +436,7 @@
         const checkoutIsGrossiste = document.getElementById('checkout-is-grossiste');
         const checkoutGrossisteId = document.getElementById('checkout-grossiste-id');
         const checkoutMecanicienId = document.getElementById('checkout-mecanicien-id');
+        const checkoutVenduA = document.getElementById('checkout-vendu-a');
         const mecanicienSelect = document.getElementById('mecanicien-select');
         const mecanicienContainer = document.getElementById('mecanicien-select-container');
         const clearCartButton = document.getElementById('clear-cart-button');
@@ -483,6 +509,15 @@
             }
 
             cartTotalLabel.textContent = new Intl.NumberFormat('fr-FR').format(total) + ' {{ param("currency") }}';
+            // Horodatage de l'encaissement : utilisé uniquement si la vente est
+            // rejouée plus tard (mode hors-ligne), pour que la tarification hors
+            // heures corresponde au moment réel de la vente.
+            if (checkoutVenduA) {
+                const d = new Date();
+                const p = (n) => String(n).padStart(2, '0');
+                checkoutVenduA.value = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+                    + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+            }
             checkoutIsGrossiste.value = getSaleType() === 'grossiste' ? '1' : '0';
             checkoutGrossisteId.value = getSaleType() === 'grossiste' ? getSelectedGrossisteId() : '';
             // Le mécanicien n'est crédité que sur une vente CLIENT.

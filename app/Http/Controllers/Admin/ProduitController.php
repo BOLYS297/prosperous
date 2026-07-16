@@ -65,11 +65,13 @@ class ProduitController extends Controller
             'prix_achat' => 'required|numeric|min:0',
             'prix_vente' => 'required|numeric|min:0',
             'prix_vente_grossiste' => 'nullable|numeric|min:0',
+            'prix_vente_hors_heures' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         $data = $request->only(['nom', 'reference', 'prix_achat', 'prix_vente']);
         $data['prix_vente_grossiste'] = $request->filled('prix_vente_grossiste') ? $request->input('prix_vente_grossiste') : null;
+        $data['prix_vente_hors_heures'] = $request->filled('prix_vente_hors_heures') ? $request->input('prix_vente_hors_heures') : null;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('produits', 'public');
@@ -93,11 +95,13 @@ class ProduitController extends Controller
             'prix_achat' => 'required|numeric|min:0',
             'prix_vente' => 'required|numeric|min:0',
             'prix_vente_grossiste' => 'nullable|numeric|min:0',
+            'prix_vente_hors_heures' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         $data = $request->only(['nom', 'reference', 'prix_achat', 'prix_vente']);
         $data['prix_vente_grossiste'] = $request->filled('prix_vente_grossiste') ? $request->input('prix_vente_grossiste') : null;
+        $data['prix_vente_hors_heures'] = $request->filled('prix_vente_hors_heures') ? $request->input('prix_vente_hors_heures') : null;
 
         if ($request->hasFile('image')) {
             if ($produit->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($produit->image)) {

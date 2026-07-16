@@ -13,8 +13,50 @@ class HoraireConnexion extends Model
         'jour_semaine',
         'heure_debut',
         'heure_fin',
+        'type',
         'actif',
     ];
+
+    public const TYPE_NORMALE = 'normale';
+    public const TYPE_MAJOREE = 'majoree';
+
+    /**
+     * Tranche horaire applicable à un employé à un instant donné.
+     * En cas de chevauchement, la tranche qui commence le plus tôt l'emporte :
+     * avec 07:00-19:00 (normale) et 19:00-23:00 (majorée), 19:00 reste au tarif
+     * normal et la majoration démarre à 19:01.
+     */
+    public static function trancheAt(User $user, ?Carbon $moment = null): ?self
+    {
+        $moment = $moment ?: now();
+
+        $jour = $moment->dayOfWeek - 1;
+        $jour = $jour < 0 ? 6 : $jour;
+        $heure = $moment->format('H:i:s');
+
+        return $user->horaires()
+            ->where('jour_semaine', $jour)
+            ->where('actif', true)
+            ->where('heure_debut', '<=', $heure)
+            ->where('heure_fin', '>=', $heure)
+            ->orderBy('heure_debut')
+            ->first();
+    }
+
+    /**
+     * L'employé se trouve-t-il dans une tranche à tarif MAJORÉ ?
+     * Hors de toute tranche, on n'applique aucune majoration : seules les plages
+     * explicitement marquées « majorée » par l'admin la déclenchent.
+     */
+    public static function estMajoreeAt(User $user, ?Carbon $moment = null): bool
+    {
+        return optional(self::trancheAt($user, $moment))->type === self::TYPE_MAJOREE;
+    }
+
+    public function estMajoree(): bool
+    {
+        return $this->type === self::TYPE_MAJOREE;
+    }
 
     protected $casts = [
         'jour_semaine' => 'integer',
