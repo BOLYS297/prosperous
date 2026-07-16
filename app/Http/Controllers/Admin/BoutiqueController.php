@@ -18,8 +18,10 @@ class BoutiqueController extends Controller
     {
         $boutiques = Boutique::orderBy('type')->orderBy('nom')->get();
 
-        // Encours d'avances de caisse (non remboursées) par boutique.
+        // Encours d'avances de caisse (non remboursées) par boutique. Les dettes
+        // personnelles de l'admin (boutique_id null) ne concernent aucune boutique.
         $avancesEnCours = \App\Models\AvanceCaisse::where('statut', 'en_cours')
+            ->deBoutique()
             ->selectRaw('boutique_id, SUM(montant - montant_rembourse) as total')
             ->groupBy('boutique_id')
             ->pluck('total', 'boutique_id');

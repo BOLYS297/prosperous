@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminSoldeMouvement;
+use App\Models\AvanceCaisse;
 use App\Models\Boutique;
 use App\Models\DebitValidation;
 use App\Models\LogActivite;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Notifications\PendingActionNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 class SoldeController extends Controller
@@ -47,7 +49,15 @@ class SoldeController extends Controller
             ->get()
             ->filter(fn ($achat) => $achat->reste_a_payer > 0);
 
-        return view('admin.solde.index', compact('admin', 'mouvements', 'boutiques', 'recettesEnAttente', 'totaux', 'dettesAdmin'));
+        // Avances personnelles encore à rembourser depuis le solde personnel.
+        $avancesAdmin = AvanceCaisse::dettesAdmin($admin->id)
+            ->where('statut', 'en_cours')
+            ->orderBy('created_at')
+            ->get();
+
+        $avancesRestant = $avancesAdmin->sum(fn ($a) => $a->reste_a_rembourser);
+
+        return view('admin.solde.index', compact('admin', 'mouvements', 'boutiques', 'recettesEnAttente', 'totaux', 'dettesAdmin', 'avancesAdmin', 'avancesRestant'));
     }
 
     /**
@@ -112,6 +122,135 @@ class SoldeController extends Controller
         }
 
         return redirect()->route('admin.solde.index')->with('success', $message);
+    }
+
+    /**
+     * Approvisionner son propre solde personnel en cash, en deux modes :
+     *  - simple : apport définitif, rien à rembourser ;
+     *  - dette  : le solde est crédité MAIS une avance est ouverte, à rembourser
+     *             progressivement depuis ce même solde (comme pour une boutique).
+     */
+    public function crediter(Request $request)
+    {
+        $validated = $request->validate([
+            'montant' => 'required|numeric|min:1',
+            'motif' => 'nullable|string|max:255',
+            'mode' => 'required|in:simple,dette',
+        ]);
+
+        $admin = Auth::user();
+        $montant = round((float) $validated['montant'], 2);
+        $isDette = $validated['mode'] === 'dette';
+        $motif = trim($validated['motif'] ?? '') ?: ($isDette ? 'Avance à rembourser' : 'Approvisionnement en cash');
+
+        DB::transaction(function () use ($admin, $montant, $motif, $isDette) {
+            $avance = null;
+
+            if ($isDette) {
+                // boutique_id null = dette portée par l'admin lui-même.
+                $avance = AvanceCaisse::create([
+                    'boutique_id' => null,
+                    'admin_id' => $admin->id,
+                    'montant' => $montant,
+                    'montant_rembourse' => 0,
+                    'motif' => $motif,
+                    'statut' => 'en_cours',
+                ]);
+            }
+
+            AdminSoldeMouvement::enregistrer(
+                $admin->id,
+                $isDette ? 'avance' : 'approvisionnement',
+                $montant,
+                $motif,
+                null,
+                $isDette ? 'avance_caisse' : null,
+                $avance?->id
+            );
+
+            LogActivite::create([
+                'user_id' => $admin->id,
+                'action' => $isDette ? 'admin.solde.avance' : 'admin.solde.crediter',
+                'description' => ($isDette ? 'Avance de ' : 'Approvisionnement de ')
+                    . money_format_app($montant) . " sur le solde personnel ({$motif}).",
+            ]);
+        });
+
+        return back()->with('success', $isDette
+            ? 'Avance de ' . money_format_app($montant) . ' créditée sur votre solde, à rembourser progressivement.'
+            : 'Votre solde personnel a été crédité de ' . money_format_app($montant) . '.');
+    }
+
+    /**
+     * Rembourser (tout ou partie d') une avance personnelle depuis le solde
+     * personnel. Verrous : le remboursement ne peut jamais être compté deux fois.
+     */
+    public function rembourserAvance(Request $request, AvanceCaisse $avance)
+    {
+        $request->validate([
+            'montant' => 'required|numeric|min:1',
+        ]);
+
+        $admin = Auth::user();
+
+        if ($avance->boutique_id !== null || (int) $avance->admin_id !== (int) $admin->id) {
+            return back()->with('error', 'Cette avance ne vous est pas imputée.');
+        }
+
+        $montant = round((float) $request->input('montant'), 2);
+
+        $dejaSoldee = false;
+        $tropGrand = false;
+        $soldeInsuffisant = false;
+
+        DB::transaction(function () use ($avance, $admin, $montant, &$dejaSoldee, &$tropGrand, &$soldeInsuffisant) {
+            $fresh = AvanceCaisse::where('id', $avance->id)->lockForUpdate()->first();
+
+            if (! $fresh || $fresh->statut !== 'en_cours') {
+                $dejaSoldee = true;
+                return;
+            }
+
+            if ($montant > $fresh->reste_a_rembourser) {
+                $tropGrand = true;
+                return;
+            }
+
+            $frais = User::where('id', $admin->id)->lockForUpdate()->first();
+            if ($montant > (float) $frais->solde_personnel) {
+                $soldeInsuffisant = true;
+                return;
+            }
+
+            AdminSoldeMouvement::enregistrer(
+                $admin->id,
+                'remboursement',
+                -$montant,
+                "Remboursement de l'avance #{$fresh->id}",
+                null,
+                'avance_caisse',
+                $fresh->id
+            );
+
+            $fresh->increment('montant_rembourse', $montant);
+            $fresh->refresh();
+
+            if ($fresh->reste_a_rembourser <= 0) {
+                $fresh->update(['statut' => 'remboursee']);
+            }
+        });
+
+        if ($dejaSoldee) {
+            return back()->with('error', 'Cette avance est déjà entièrement remboursée.');
+        }
+        if ($tropGrand) {
+            return back()->with('error', 'Le montant dépasse le reste à rembourser.');
+        }
+        if ($soldeInsuffisant) {
+            return back()->with('error', 'Solde personnel insuffisant pour ce remboursement.');
+        }
+
+        return back()->with('success', 'Remboursement de ' . money_format_app($montant) . ' enregistré.');
     }
 
     /** Vider (totalement ou partiellement) le solde personnel. */

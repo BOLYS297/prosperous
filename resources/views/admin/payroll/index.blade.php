@@ -42,6 +42,7 @@
                     <th class="p-4 font-semibold">Report précédent</th>
                     <th class="p-4 font-semibold">Salaire à payer</th>
                     <th class="p-4 font-semibold">Report suivant</th>
+                    <th class="p-4 font-semibold">Règlement</th>
                 </tr>
             </thead>
             <tbody class="text-sm text-slate-700">
@@ -64,10 +65,59 @@
                         <td class="p-4">{{ number_format($payroll->carryover_previous, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4 font-semibold text-slate-900">{{ number_format($payroll->net_salary, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4">{{ number_format($payroll->carryover_next, 0, ',', ' ') }} {{ param("currency") }}</td>
+                        <td class="p-4">
+                            @if($payroll->estPaye())
+                                <div class="inline-flex flex-col">
+                                    <span class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2.5 py-1 text-xs font-bold">
+                                        <i class="ri-checkbox-circle-line mr-1"></i>
+                                        Payé — {{ number_format($payroll->paid_amount, 0, ',', ' ') }} {{ param("currency") }}
+                                    </span>
+                                    <span class="text-[11px] text-slate-500 mt-1">
+                                        Le {{ $payroll->paid_at->translatedFormat('d/m/Y à H:i') }} depuis <strong>{{ $payroll->source_label }}</strong>
+                                    </span>
+                                </div>
+                            @elseif($payroll->net_salary <= 0)
+                                <span class="text-slate-400 text-xs">Rien à payer</span>
+                            @else
+                                <div x-data="{ ouvert: false }" class="relative">
+                                    <button type="button" @click="ouvert = !ouvert"
+                                        class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-semibold whitespace-nowrap">
+                                        <i class="ri-bank-card-line mr-1"></i> Valider et payer
+                                    </button>
+
+                                    <div x-show="ouvert" x-cloak @click.outside="ouvert = false"
+                                        class="absolute right-0 z-20 mt-2 w-72 p-4 bg-white border border-slate-200 rounded-xl shadow-xl text-left">
+                                        <p class="text-xs text-slate-500 mb-3">
+                                            Régler <strong class="text-slate-800">{{ number_format($payroll->net_salary, 0, ',', ' ') }} {{ param("currency") }}</strong>
+                                            à {{ $payroll->user->nom_utilisateur }}. Choisissez la source :
+                                        </p>
+
+                                        <form action="{{ route('admin.payroll.payer', $payroll) }}" method="POST"
+                                            x-data="{ source: 'admin|' }"
+                                            @submit="return confirm('Confirmer le paiement de ce salaire ? Le montant sera figé.')">
+                                            @csrf
+                                            <select x-model="source" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm mb-3">
+                                                <option value="admin|">Mon solde personnel — {{ number_format($admin->solde_personnel, 0, ',', ' ') }} {{ param("currency") }}</option>
+                                                @foreach($boutiques as $b)
+                                                    <option value="boutique|{{ $b->id }}">{{ $b->nom }} — {{ number_format($b->solde, 0, ',', ' ') }} {{ param("currency") }}</option>
+                                                @endforeach
+                                            </select>
+
+                                            <input type="hidden" name="source_type" :value="source.split('|')[0]">
+                                            <input type="hidden" name="source_id" :value="source.split('|')[1]">
+
+                                            <button type="submit" class="w-full px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-semibold">
+                                                Confirmer le paiement
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="p-8 text-center text-slate-500">Aucun salarié trouvé pour cette période.</td>
+                        <td colspan="10" class="p-8 text-center text-slate-500">Aucun salarié trouvé pour cette période.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -77,5 +127,6 @@
 
 <div class="mt-6 text-sm text-slate-600">
     <p class="mb-2"><strong>Note :</strong> le salaire mensuel se réinitialise chaque mois. Les déductions enregistrées pour la période sont appliquées sur le salaire courant. Si le total des déductions dépasse le salaire, le montant restant est reporté sur le mois suivant.</p>
+    <p><strong>Règlement :</strong> une fois payé, le montant est <strong>figé</strong> : les déductions validées ou les ventes enregistrées ensuite ne réécrivent plus un mois déjà réglé, elles jouent sur le mois suivant. Le paiement débite la source choisie — votre solde personnel ou la trésorerie d'un point de vente.</p>
 </div>
 @endsection

@@ -37,6 +37,28 @@ class AvanceCaisse extends Model
         return $query->where('statut', 'en_cours');
     }
 
+    /**
+     * Dette personnelle de l'admin (aucune boutique concernée) : le débiteur est
+     * l'admin lui-même, qui rembourse depuis son solde personnel.
+     */
+    public function scopeDettesAdmin($query, ?int $adminId = null)
+    {
+        $query->whereNull('boutique_id');
+
+        return $adminId ? $query->where('admin_id', $adminId) : $query;
+    }
+
+    /** Avances portées par une boutique (par opposition aux dettes de l'admin). */
+    public function scopeDeBoutique($query)
+    {
+        return $query->whereNotNull('boutique_id');
+    }
+
+    public function getEstDetteAdminAttribute(): bool
+    {
+        return $this->boutique_id === null;
+    }
+
     public function getResteARembourserAttribute(): float
     {
         return max(0, (float) $this->montant - (float) $this->montant_rembourse);
