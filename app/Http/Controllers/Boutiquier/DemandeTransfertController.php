@@ -169,11 +169,18 @@ class DemandeTransfertController extends Controller
 
             $demande->update(['statut' => 'livree']);
 
-            $stock = Stock::firstOrCreate(
-                ['boutique_id' => $demande->boutique_id, 'produit_id' => $demande->produit_id],
-                ['quantite' => 0]
+            // Entrée en stock au PRIX D'ORIGINE figé à l'expédition (coût préservé),
+            // via un nouveau lot plutôt qu'une fusion sans coût.
+            Stock::addBatch(
+                $demande->boutique_id,
+                $demande->produit_id,
+                $demande->quantite_expediee,
+                $demande->prix_achat_unitaire !== null ? (float) $demande->prix_achat_unitaire : null,
+                $demande->prix_vente_unitaire !== null ? (float) $demande->prix_vente_unitaire : null,
+                $demande->prix_vente_grossiste_unitaire !== null ? (float) $demande->prix_vente_grossiste_unitaire : null,
+                'transfert',
+                $demande->id
             );
-            $stock->increment('quantite', $demande->quantite_expediee);
         });
 
         if ($alreadyProcessed) {
@@ -223,11 +230,20 @@ class DemandeTransfertController extends Controller
                 'quantite_recue' => $quantiteRecue,
             ]);
 
-            $stock = Stock::firstOrCreate(
-                ['boutique_id' => $fresh->boutique_id, 'produit_id' => $fresh->produit_id],
-                ['quantite' => 0]
-            );
-            $stock->increment('quantite', $quantiteRecue);
+            // Seule la quantité RÉELLEMENT reçue entre en stock, au prix figé à
+            // l'expédition (l'écart manquant est signalé à l'admin, pas stocké).
+            if ($quantiteRecue > 0) {
+                Stock::addBatch(
+                    $fresh->boutique_id,
+                    $fresh->produit_id,
+                    $quantiteRecue,
+                    $fresh->prix_achat_unitaire !== null ? (float) $fresh->prix_achat_unitaire : null,
+                    $fresh->prix_vente_unitaire !== null ? (float) $fresh->prix_vente_unitaire : null,
+                    $fresh->prix_vente_grossiste_unitaire !== null ? (float) $fresh->prix_vente_grossiste_unitaire : null,
+                    'transfert',
+                    $fresh->id
+                );
+            }
         });
 
         if ($alreadyProcessed) {
