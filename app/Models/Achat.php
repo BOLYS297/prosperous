@@ -50,7 +50,11 @@ class Achat extends Model
 
     public function getResteAPayerAttribute()
     {
-        return max(0, $this->montant_total - $this->montant_paye);
+        // Arrondi à l'unité : le FCFA n'a pas de subdivision utilisée en
+        // pratique, et un résidu de quelques centimes (venant d'un prix
+        // unitaire à décimales) empêcherait cette dette de jamais se solder,
+        // malgré un "Restant : 0 FCFA" affiché (arrondi, lui, à l'affichage).
+        return round(max(0, $this->montant_total - $this->montant_paye));
     }
 
     public function recharge()

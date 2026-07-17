@@ -11,6 +11,21 @@ use Illuminate\Support\Facades\DB;
 class VenteController extends Controller
 {
     /**
+     * Prix d'achat PAR DÉFAUT d'un produit (colonne brute, hors accesseur).
+     *
+     * L'accesseur Produit::prix_achat renvoie le coût du lot actif quand il
+     * existe ; ici on veut la valeur de référence saisie sur le produit
+     * (inventaire initial), pour servir de repli quand un lot n'a pas de coût.
+     * Null seulement si aucun prix d'achat n'est défini (cas défensif).
+     */
+    protected function prixAchatParDefaut(\App\Models\Produit $produit): ?float
+    {
+        $brut = $produit->getRawOriginal('prix_achat');
+
+        return ($brut !== null && (float) $brut > 0) ? (float) $brut : null;
+    }
+
+    /**
      * Heure retenue pour la tarification hors heures.
      *
      * Par défaut l'heure du serveur. On n'accepte l'heure transmise par la caisse
@@ -138,14 +153,18 @@ class VenteController extends Controller
 
                 // Coût FIGÉ à la vente (moyenne pondérée des lots consommés) :
                 // indispensable pour calculer le bénéfice plus tard.
-                // IMPORTANT : si un lot n'a AUCUN prix d'achat connu, on enregistre
-                // null (coût inconnu) plutôt que 0 — sinon le bénéfice afficherait
-                // 100 % de marge sur cette ligne.
+                // Chaque lot utilise SON prix d'achat ; s'il n'en a pas (stock
+                // d'inventaire importé avant la mise en place du suivi des coûts),
+                // on retombe sur le PRIX D'ACHAT PAR DÉFAUT du produit — que tous
+                // les produits possèdent. Le coût ne reste inconnu que si même ce
+                // repli est absent (produit sans prix d'achat, ce qui n'existe pas
+                // ici mais reste géré défensivement).
+                $defaultCost = $this->prixAchatParDefaut($produit);
                 $costTotal = 0;
                 $costQty = 0;
                 $coutConnu = true;
                 foreach ($consumedStocks as $cs) {
-                    $lotCost = $cs['stock']->prix_achat_unitaire;
+                    $lotCost = $cs['stock']->prix_achat_unitaire ?? $defaultCost;
                     if ($lotCost === null) {
                         $coutConnu = false;
                         break;
@@ -368,13 +387,27 @@ class VenteController extends Controller
                 'quantite' => (int) $lineData['quantite'],
                 'grossiste_override' => $grossisteOverride,
                 'fallback_price' => (float) $produit->prix_vente,
+                'default_cost' => $this->prixAchatParDefaut($produit),
             ];
         }
+
+        // Le mécanicien reste porté par la vente (le formulaire d'édition ne le
+        // renvoie pas) : on le recharge pour recréditer sa commission après
+        // modification, sinon éditer un ticket effacerait sa marge.
+        $mecanicien = $vente->mecanicien_id
+            ? \App\Models\User::where('id', $vente->mecanicien_id)
+                ->where('role', 'mecanicien')
+                ->where('boutique_id', $boutiqueId)
+                ->first()
+            : null;
+        $commissionPct = $mecanicien
+            ? (float) ($mecanicien->commission_percent ?? param('mecanicien_commission_percent', 0))
+            : 0.0;
 
         $oldTotal = $vente->montant_total;
 
         try {
-        DB::transaction(function () use ($vente, $boutiqueId, $newLineMap, $oldTotal, $grossisteId, $isGrossiste) {
+        DB::transaction(function () use ($vente, $boutiqueId, $newLineMap, $oldTotal, $grossisteId, $isGrossiste, $mecanicien, $commissionPct) {
             foreach ($vente->lignes as $existingLine) {
                 \App\Models\Stock::restoreQuantity($boutiqueId, $existingLine->produit_id, $existingLine->quantite);
             }
@@ -385,22 +418,43 @@ class VenteController extends Controller
             foreach ($newLineMap as $lineData) {
                 $consumedStocks = \App\Models\Stock::consumeForSale($boutiqueId, $lineData['produit_id'], $lineData['quantite'], $isGrossiste ? null : $lineData['fallback_price']);
 
+                // Coût FIGÉ, même règle que lors de la création : prix d'achat du
+                // lot, sinon prix d'achat par défaut du produit. Sans ce gel,
+                // modifier un ticket effaçait le coût (ligne « sans coût »).
+                $costTotal = 0;
+                $costQty = 0;
+                $coutConnu = true;
+                foreach ($consumedStocks as $cs) {
+                    $lotCost = $cs['stock']->prix_achat_unitaire ?? $lineData['default_cost'];
+                    if ($lotCost === null) {
+                        $coutConnu = false;
+                        break;
+                    }
+                    $costTotal += (float) $lotCost * (int) $cs['quantite'];
+                    $costQty += (int) $cs['quantite'];
+                }
+                $avgCost = ($coutConnu && $costQty > 0) ? $costTotal / $costQty : null;
+
                 if ($isGrossiste && $lineData['grossiste_override'] !== null) {
-                    // Tarif grossiste spécifique : une seule ligne.
+                    // Tarif grossiste spécifique : une seule ligne. Pas de commission.
                     $unitPrice = $lineData['grossiste_override'];
                     \App\Models\VenteLigne::create([
                         'vente_id' => $vente->id,
                         'produit_id' => $lineData['produit_id'],
                         'quantite' => $lineData['quantite'],
                         'prix_unitaire' => $unitPrice,
+                        'prix_achat_unitaire' => $avgCost,
+                        'commission_mecanicien' => null,
                         'est_grossiste' => true,
                     ]);
 
                     $newTotal += $unitPrice * $lineData['quantite'];
                 } else {
-                    // FIFO : chaque lot à son prix (grossiste par lot si vente grossiste).
+                    // FIFO agrégé par produit (comme à la création) : une ligne
+                    // porteuse du coût figé et de la commission éventuelle.
+                    $prodQty = 0;
+                    $prodTotal = 0;
                     foreach ($consumedStocks as $consumedStock) {
-                        $lotQty = $consumedStock['quantite'];
                         if ($isGrossiste) {
                             $lotPrice = $consumedStock['prix_grossiste']
                                 ?? $consumedStock['prix_unitaire']
@@ -408,16 +462,36 @@ class VenteController extends Controller
                         } else {
                             $lotPrice = $consumedStock['prix_unitaire'] ?? $lineData['fallback_price'];
                         }
+                        $lotQty = $consumedStock['quantite'];
+                        $prodQty += $lotQty;
+                        $prodTotal += $lotPrice * $lotQty;
+                    }
+
+                    if ($prodQty > 0) {
+                        // Une modification est une correction : pas de majoration
+                        // hors heures rétroactive. Le prix standard = prix facturé.
+                        $prixStandard = $prodTotal / $prodQty;
+
+                        // Commission mécanicien recalculée sur le bénéfice réel,
+                        // uniquement en vente client avec coût connu.
+                        $commission = null;
+                        if ($mecanicien && ! $isGrossiste && $commissionPct > 0 && $avgCost !== null) {
+                            $benefice = ($prixStandard - $avgCost) * $prodQty;
+                            $commission = max(0, $benefice * $commissionPct / 100);
+                        }
 
                         \App\Models\VenteLigne::create([
                             'vente_id' => $vente->id,
                             'produit_id' => $lineData['produit_id'],
-                            'quantite' => $lotQty,
-                            'prix_unitaire' => $lotPrice,
+                            'quantite' => $prodQty,
+                            'prix_unitaire' => $prixStandard,
+                            'prix_unitaire_standard' => $prixStandard,
+                            'prix_achat_unitaire' => $avgCost,
+                            'commission_mecanicien' => $commission,
                             'est_grossiste' => $isGrossiste,
                         ]);
 
-                        $newTotal += $lotPrice * $lotQty;
+                        $newTotal += $prixStandard * $prodQty;
                     }
                 }
             }
