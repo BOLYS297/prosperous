@@ -29,14 +29,14 @@
             </div>
             <div x-show="role !== 'mecanicien'">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Adresse Email</label>
-                <input type="email" name="email" value="{{ old('email') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" :required="role !== 'mecanicien'">
+                <input type="email" name="email" value="{{ old('email') }}" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" :required="role !== 'mecanicien'" :disabled="role === 'mecanicien'" autocomplete="off">
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div x-show="role !== 'mecanicien'">
                 <label class="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
-                <input type="text" name="password" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Boutiquier2026" :required="role !== 'mecanicien'">
+                <input type="text" name="password" class="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ex: Boutiquier2026" :required="role !== 'mecanicien'" :disabled="role === 'mecanicien'" autocomplete="off">
                 <p class="text-xs text-slate-500 mt-1">Le mot de passe est affiché en clair pour que vous puissiez le communiquer à l'employé.</p>
             </div>
             <div x-show="role !== 'mecanicien'">

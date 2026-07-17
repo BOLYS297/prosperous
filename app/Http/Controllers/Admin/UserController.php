@@ -33,6 +33,14 @@ class UserController extends Controller
         // salaire de base. Il est rémunéré par une commission sur le bénéfice.
         $isMecanicien = $request->input('role') === 'mecanicien';
 
+        // Un mécanicien n'a ni email ni mot de passe : on ignore toute valeur
+        // soumise (le champ caché du formulaire peut être rempli par l'autofill
+        // du navigateur, ce qui faisait échouer le 2e mécanicien sur « email
+        // déjà pris »). Un email technique unique est généré à la création.
+        if ($isMecanicien) {
+            $request->merge(['email' => null, 'password' => null]);
+        }
+
         $request->validate([
             'nom_utilisateur' => 'required|string|unique:users',
             'email' => [$isMecanicien ? 'nullable' : 'required', 'email', 'unique:users'],
@@ -72,7 +80,15 @@ class UserController extends Controller
      */
     protected function technicalEmail(string $nom): string
     {
-        return Str::slug($nom) . '.' . Str::lower(Str::random(6)) . '@mecanicien.local';
+        $slug = Str::slug($nom) ?: 'mecanicien';
+
+        // Garantit l'unicité (la colonne email est unique) : on régénère tant que
+        // l'adresse existe déjà, plutôt que de risquer une collision.
+        do {
+            $email = $slug . '.' . Str::lower(Str::random(6)) . '@mecanicien.local';
+        } while (User::where('email', $email)->exists());
+
+        return $email;
     }
 
     public function edit(\App\Models\User $user)
@@ -88,6 +104,12 @@ class UserController extends Controller
     public function update(Request $request, \App\Models\User $user)
     {
         $isMecanicien = $request->input('role') === 'mecanicien';
+
+        // Cf. store() : un mécanicien n'a ni email ni mot de passe saisis, on
+        // ignore toute valeur soumise (autofill) pour éviter une collision unique.
+        if ($isMecanicien) {
+            $request->merge(['email' => null, 'password' => null]);
+        }
 
         $request->validate([
             'nom_utilisateur' => ['required', 'string', Rule::unique('users')->ignore($user->id)],
