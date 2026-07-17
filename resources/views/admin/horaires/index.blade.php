@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="mb-8">
-    <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Gestion des Tranches Horaires de Connexion</h2>
-    <p class="text-slate-600">Définissez les plages horaires pendant lesquelles les employés peuvent se connecter à la plateforme.</p>
+    <h2 class="text-3xl font-bold text-primary mb-2 tracking-tight">Sessions principales des employés</h2>
+    <p class="text-slate-600">Définissez la session principale (heures normales) de chaque rôle par jour. Travailler en dehors = heures supplémentaires majorées au profit de l'employé.</p>
 </div>
 
 @if(session('success'))
@@ -61,18 +61,12 @@
                         <input type="time" name="heure_fin" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">Tarif appliqué <span class="text-red-500">*</span></label>
-                        <select name="type" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
-                            <option value="normale">Tarif normal</option>
-                            <option value="majoree">Tarif majoré (heures supp.)</option>
-                        </select>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center">
+                            <i class="ri-add-line mr-1"></i> Ajouter la session
+                        </button>
                     </div>
                 </div>
-
-                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center mb-2">
-                    <i class="ri-add-line mr-1"></i> Ajouter
-                </button>
 
                 @if($errors->has('jour_semaine') || $errors->has('heure_debut') || $errors->has('heure_fin'))
                     <div class="text-red-600 text-xs mt-2">
@@ -97,26 +91,12 @@
                             <div class="flex-1">
                                 <div class="font-medium text-slate-800">{{ $horaire->getDayLabel() }}</div>
                                 <div class="text-sm text-slate-600">{{ $horaire->heure_debut }} - {{ $horaire->heure_fin }}</div>
-                                @if($horaire->estMajoree())
-                                    <span class="mt-1 inline-flex items-center rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[10px] font-bold">
-                                        <i class="ri-moon-clear-line mr-1"></i> Tarif majoré — heures supp.
-                                    </span>
-                                @else
-                                    <span class="mt-1 inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-semibold">
-                                        <i class="ri-sun-line mr-1"></i> Tarif normal
-                                    </span>
-                                @endif
+                                <span class="mt-1 inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-semibold">
+                                    <i class="ri-sun-line mr-1"></i> Session principale
+                                </span>
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <form action="{{ route('admin.horaires.type', $horaire) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="p-2 rounded-lg transition-colors {{ $horaire->estMajoree() ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}" title="{{ $horaire->estMajoree() ? 'Repasser au tarif normal' : 'Passer au tarif majoré' }}">
-                                        <i class="ri-{{ $horaire->estMajoree() ? 'moon-clear-line' : 'sun-line' }}"></i>
-                                    </button>
-                                </form>
-
                                 <form action="{{ route('admin.horaires.toggle', $horaire) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PATCH')
@@ -139,7 +119,7 @@
             @else
                 <div class="text-center py-6">
                     <i class="ri-inbox-line text-4xl text-slate-300 mb-2"></i>
-                    <p class="text-slate-500 text-sm">Aucune tranche horaire définie</p>
+                    <p class="text-slate-500 text-sm">Aucune session définie</p>
                 </div>
             @endif
         </div>
@@ -192,18 +172,12 @@
                         <input type="time" name="heure_fin" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">Tarif appliqué <span class="text-red-500">*</span></label>
-                        <select name="type" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
-                            <option value="normale">Tarif normal</option>
-                            <option value="majoree">Tarif majoré (heures supp.)</option>
-                        </select>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center">
+                            <i class="ri-add-line mr-1"></i> Ajouter la session
+                        </button>
                     </div>
                 </div>
-
-                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center mb-2">
-                    <i class="ri-add-line mr-1"></i> Ajouter
-                </button>
 
                 @if($errors->has('jour_semaine') || $errors->has('heure_debut') || $errors->has('heure_fin'))
                     <div class="text-red-600 text-xs mt-2">
@@ -228,26 +202,12 @@
                             <div class="flex-1">
                                 <div class="font-medium text-slate-800">{{ $horaire->getDayLabel() }}</div>
                                 <div class="text-sm text-slate-600">{{ $horaire->heure_debut }} - {{ $horaire->heure_fin }}</div>
-                                @if($horaire->estMajoree())
-                                    <span class="mt-1 inline-flex items-center rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 text-[10px] font-bold">
-                                        <i class="ri-moon-clear-line mr-1"></i> Tarif majoré — heures supp.
-                                    </span>
-                                @else
-                                    <span class="mt-1 inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-semibold">
-                                        <i class="ri-sun-line mr-1"></i> Tarif normal
-                                    </span>
-                                @endif
+                                <span class="mt-1 inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-semibold">
+                                    <i class="ri-sun-line mr-1"></i> Session principale
+                                </span>
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <form action="{{ route('admin.horaires.type', $horaire) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="p-2 rounded-lg transition-colors {{ $horaire->estMajoree() ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}" title="{{ $horaire->estMajoree() ? 'Repasser au tarif normal' : 'Passer au tarif majoré' }}">
-                                        <i class="ri-{{ $horaire->estMajoree() ? 'moon-clear-line' : 'sun-line' }}"></i>
-                                    </button>
-                                </form>
-
                                 <form action="{{ route('admin.horaires.toggle', $horaire) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PATCH')
@@ -270,7 +230,7 @@
             @else
                 <div class="text-center py-6">
                     <i class="ri-inbox-line text-4xl text-slate-300 mb-2"></i>
-                    <p class="text-slate-500 text-sm">Aucune tranche horaire définie</p>
+                    <p class="text-slate-500 text-sm">Aucune session définie</p>
                 </div>
             @endif
         </div>
@@ -281,20 +241,19 @@
     <div class="flex gap-4">
         <i class="ri-information-line text-blue-600 text-2xl flex-shrink-0"></i>
         <div>
-            <h4 class="font-bold text-blue-900 mb-2">Informations importantes</h4>
+            <h4 class="font-bold text-blue-900 mb-2">Session principale &amp; connexion</h4>
             <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
-                <li><strong>Les admins</strong> peuvent toujours se connecter, indépendamment des tranches horaires</li>
-                <li>Les <strong>employés</strong> ne pourront se connecter que pendant les tranches horaires activées</li>
-                <li>Vous pouvez désactiver une tranche sans la supprimer pour la réactiver plus tard</li>
-                <li>Assurez-vous qu'au moins une tranche soit active par jour pour chaque rôle</li>
+                <li>Chaque plage définit la <strong>session principale</strong> de l'employé pour ce jour (ses heures normales).</li>
+                <li><strong>Les jours où il a une session</strong>, l'employé peut se connecter <strong>à toute heure</strong> : il peut arriver plus tôt ou rester plus tard pour faire des heures supplémentaires.</li>
+                <li><strong>Les jours sans session</strong> (repos), l'accès reste bloqué. <strong>Les admins</strong> se connectent toujours, sans restriction.</li>
+                <li>Le retard (arrivée après le début) et le départ anticipé (avant la fin) restent <strong>pénalisés par une déduction</strong>, calculée par rapport à la session principale.</li>
             </ul>
 
-            <h4 class="font-bold text-blue-900 mt-4 mb-2">Tarif normal / tarif majoré</h4>
+            <h4 class="font-bold text-blue-900 mt-4 mb-2">Heures supplémentaires (majoration automatique)</h4>
             <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
-                <li>Ces tranches définissent aussi <strong>le prix appliqué</strong> : aucune heure n'est codée en dur dans l'application, tout part d'ici.</li>
-                <li>Une tranche <strong>« Tarif majoré »</strong> applique automatiquement le prix hors heures. La différence avec le prix normal <strong>revient à l'employé</strong> qui réalise la vente (heures supplémentaires), cumulée et payée en fin de mois.</li>
-                <li>L'employé <strong>peut se connecter et vendre</strong> sur les deux types de tranches : seul le prix change.</li>
-                <li>Exemple pour un boutiquier le lundi : <strong>07:00 – 19:00 en tarif normal</strong>, puis <strong>19:00 – 23:00 en tarif majoré</strong>. À 19:00 pile le prix reste normal, la majoration démarre à 19:01.</li>
+                <li>Toute vente réalisée <strong>en dehors de la session principale</strong> — avant le début ou après la fin — est automatiquement <strong>majorée</strong>. Aucune tranche spéciale à créer.</li>
+                <li>La différence avec le prix normal <strong>revient à l'employé</strong> qui réalise la vente, cumulée et payée en fin de mois.</li>
+                <li>Exemple : session <strong>07:00 – 19:00</strong>. Une vente à 06:30 (arrivé plus tôt) ou à 19:30 (reparti plus tard) est majorée. À 19:00 pile le prix reste normal ; la majoration démarre à 19:01.</li>
                 <li>Le montant de la majoration se règle par produit (« prix hors heures ») ou globalement en pourcentage dans <a href="{{ route('admin.parametres.index') }}" class="underline font-semibold">Paramètres</a>.</li>
             </ul>
         </div>
