@@ -2,8 +2,7 @@
 
 @section('content')
 @php
-    $trancheCourante = \App\Support\TarifHoraire::trancheCourante(auth()->user());
-    $horsHeures = $trancheCourante && $trancheCourante->estMajoree();
+    $horsHeures = \App\Support\TarifHoraire::estMajore(auth()->user());
 @endphp
 <div class="space-y-8">
     <div class="mb-8">
@@ -16,10 +15,10 @@
             <div class="flex items-start gap-3">
                 <i class="ri-moon-clear-line text-3xl mt-0.5"></i>
                 <div>
-                    <h3 class="font-bold text-lg">Tarif hors heures actif</h3>
+                    <h3 class="font-bold text-lg">Heures supplémentaires actives</h3>
                     <p class="text-sm text-indigo-100 mt-1">
-                        Votre tranche horaire en cours ({{ \App\Support\TarifHoraire::libellePlage($trancheCourante) }}) est en
-                        <strong>tarif majoré</strong> : les prix affichés sont majorés pour les ventes client.
+                        Vous êtes <strong>en dehors de votre session principale</strong> : les prix affichés sont
+                        <strong>majorés</strong> pour les ventes client.
                     </p>
                     <p class="text-sm font-semibold text-white mt-1">
                         <i class="ri-hand-coin-line mr-1"></i> La majoration vous revient : elle est cumulée et vous sera payée en fin de mois.

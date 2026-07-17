@@ -13,20 +13,15 @@ class HoraireConnexion extends Model
         'jour_semaine',
         'heure_debut',
         'heure_fin',
-        'type',
         'actif',
     ];
 
-    public const TYPE_NORMALE = 'normale';
-    public const TYPE_MAJOREE = 'majoree';
-
     /**
-     * Tranche horaire applicable à un employé à un instant donné.
-     * En cas de chevauchement, la tranche qui commence le plus tôt l'emporte :
-     * avec 07:00-19:00 (normale) et 19:00-23:00 (majorée), 19:00 reste au tarif
-     * normal et la majoration démarre à 19:01.
+     * Session principale en cours pour cet employé à un instant donné : la
+     * tranche définie par l'admin dans laquelle tombe ce moment. Null si le
+     * moment est HORS session (avant le début ou après la fin = heures supp.).
      */
-    public static function trancheAt(User $user, ?Carbon $moment = null): ?self
+    public static function sessionAt(User $user, ?Carbon $moment = null): ?self
     {
         $moment = $moment ?: now();
 
@@ -44,18 +39,42 @@ class HoraireConnexion extends Model
     }
 
     /**
-     * L'employé se trouve-t-il dans une tranche à tarif MAJORÉ ?
-     * Hors de toute tranche, on n'applique aucune majoration : seules les plages
-     * explicitement marquées « majorée » par l'admin la déclenchent.
+     * L'employé a-t-il une session définie ce jour-là (à toute heure) ?
+     * Sert de socle aux heures supplémentaires : on ne majore une vente hors
+     * session que si l'employé était effectivement de service ce jour.
      */
-    public static function estMajoreeAt(User $user, ?Carbon $moment = null): bool
+    public static function aUneSessionCeJour(User $user, ?Carbon $moment = null): bool
     {
-        return optional(self::trancheAt($user, $moment))->type === self::TYPE_MAJOREE;
+        $moment = $moment ?: now();
+
+        $jour = $moment->dayOfWeek - 1;
+        $jour = $jour < 0 ? 6 : $jour;
+
+        return $user->horaires()
+            ->where('jour_semaine', $jour)
+            ->where('actif', true)
+            ->exists();
     }
 
-    public function estMajoree(): bool
+    /**
+     * Ce moment correspond-il à des HEURES SUPPLÉMENTAIRES ?
+     * Vrai si l'employé a une session ce jour, mais que le moment tombe EN DEHORS
+     * de celle-ci — qu'il soit arrivé plus tôt (avant le début) ou reparti plus
+     * tard (après la fin). La borne exacte du début et de la fin reste en heures
+     * normales : la majoration démarre à la minute suivante.
+     */
+    public static function estHeuresSupp(User $user, ?Carbon $moment = null): bool
     {
-        return $this->type === self::TYPE_MAJOREE;
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
+            return false;
+        }
+
+        if (! self::aUneSessionCeJour($user, $moment)) {
+            return false;
+        }
+
+        // A une session ce jour ; heures supp. dès qu'on n'est dans aucune d'elles.
+        return self::sessionAt($user, $moment) === null;
     }
 
     protected $casts = [
@@ -64,7 +83,13 @@ class HoraireConnexion extends Model
     ];
 
     /**
-     * Vérifie si un utilisateur peut se connecter maintenant
+     * L'utilisateur peut-il se connecter maintenant ?
+     *
+     * Les jours où il a une session définie, il peut se connecter À TOUTE HEURE :
+     * cela lui permet d'arriver plus tôt ou de rester plus tard pour faire des
+     * heures supplémentaires (majorées à son profit). Les jours SANS session
+     * (repos), l'accès reste bloqué. La discipline reste tenue par les déductions
+     * de retard / départ anticipé, calculées par rapport à la session principale.
      */
     public static function canUserConnect(User $user): bool
     {
@@ -77,16 +102,7 @@ class HoraireConnexion extends Model
             return true;
         }
 
-        $currentDay = now()->dayOfWeek - 1; // dayOfWeek retourne 1=dimanche, on veut 0=lundi
-        $currentDay = $currentDay < 0 ? 6 : $currentDay;
-        $currentTime = now()->format('H:i:s');
-
-        return $user->horaires()
-            ->where('jour_semaine', $currentDay)
-            ->where('actif', true)
-            ->where('heure_debut', '<=', $currentTime)
-            ->where('heure_fin', '>=', $currentTime)
-            ->exists();
+        return self::aUneSessionCeJour($user);
     }
 
     public static function getCurrentIntervalForUser(User $user): ?self

@@ -9,24 +9,24 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 
 /**
- * Tarification des heures majorées.
+ * Tarification des heures supplémentaires.
  *
- * Les heures ne sont JAMAIS codées en dur : elles proviennent des tranches
- * horaires définies par l'admin (« Tranches horaires »), par rôle et par jour.
- * Chaque tranche porte un type :
- *   - normale : prix habituel ;
- *   - majoree : prix majoré. La différence avec le prix normal ne revient pas à
- *     l'entreprise mais à l'employé qui réalise la vente (heures supplémentaires),
- *     cumulée puis payée en fin de mois.
+ * Les heures ne sont JAMAIS codées en dur : la référence est la SESSION
+ * PRINCIPALE de l'employé, définie par l'admin dans « Tranches horaires » (par
+ * rôle et par jour). Travailler EN DEHORS de cette session — arriver plus tôt ou
+ * repartir plus tard — constitue des heures supplémentaires : le prix est
+ * automatiquement majoré et la différence avec le prix normal revient à
+ * l'employé qui réalise la vente, cumulée puis payée en fin de mois.
  */
 class TarifHoraire
 {
     /**
-     * La vente de cet employé, à ce moment, tombe-t-elle dans une tranche majorée ?
+     * La vente de cet employé, à ce moment, tombe-t-elle en heures supplémentaires
+     * (hors de sa session principale du jour) ?
      */
     public static function estMajore(User $user, ?Carbon $moment = null): bool
     {
-        return HoraireConnexion::estMajoreeAt($user, $moment);
+        return HoraireConnexion::estHeuresSupp($user, $moment);
     }
 
     /**
@@ -51,19 +51,19 @@ class TarifHoraire
         return round($prixStandard * (1 + $pct / 100), 2);
     }
 
-    /** Tranche en cours pour cet employé (pour l'affichage au point de vente). */
-    public static function trancheCourante(User $user, ?Carbon $moment = null): ?HoraireConnexion
+    /** Session principale en cours pour cet employé (null s'il est en heures supp.). */
+    public static function sessionCourante(User $user, ?Carbon $moment = null): ?HoraireConnexion
     {
-        return HoraireConnexion::trancheAt($user, $moment);
+        return HoraireConnexion::sessionAt($user, $moment);
     }
 
-    /** Libellé d'une tranche : « 19:00 – 23:00 ». */
-    public static function libellePlage(?HoraireConnexion $tranche): string
+    /** Libellé d'une session : « 07:00 – 19:00 ». */
+    public static function libellePlage(?HoraireConnexion $session): string
     {
-        if (! $tranche) {
+        if (! $session) {
             return '—';
         }
 
-        return substr($tranche->heure_debut, 0, 5) . ' – ' . substr($tranche->heure_fin, 0, 5);
+        return substr($session->heure_debut, 0, 5) . ' – ' . substr($session->heure_fin, 0, 5);
     }
 }
