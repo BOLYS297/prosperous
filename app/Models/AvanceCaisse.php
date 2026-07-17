@@ -61,6 +61,8 @@ class AvanceCaisse extends Model
 
     public function getResteARembourserAttribute(): float
     {
-        return max(0, (float) $this->montant - (float) $this->montant_rembourse);
+        // Arrondi à l'unité, comme Achat::reste_a_payer : évite qu'un résidu de
+        // quelques centimes laisse une avance éternellement "en cours".
+        return round(max(0, (float) $this->montant - (float) $this->montant_rembourse));
     }
 }

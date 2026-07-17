@@ -86,7 +86,7 @@
                                     <form action="{{ route('boutiquier.dettes.payer', $achat) }}" method="POST" data-offline-sync="true" class="space-y-3">
                                         @csrf
                                         <label class="block text-slate-600 text-sm">Montant à payer</label>
-                                        <input name="montant" type="number" min="1" step="0.01" max="{{ $achat->reste_a_payer }}" value="{{ min($boutique->solde, $achat->reste_a_payer) }}" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none" required>
+                                        <input name="montant" type="number" min="1" step="1" max="{{ (int) $achat->reste_a_payer }}" value="{{ (int) min($boutique->solde, $achat->reste_a_payer) }}" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none" required>
                                         <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">Payer</button>
                                     </form>
                                 </td>
@@ -135,7 +135,7 @@
                                     <form action="{{ route('boutiquier.avances.rembourser', $avance) }}" method="POST" data-offline-sync="true" class="space-y-3">
                                         @csrf
                                         <label class="block text-slate-600 text-sm">Montant à rembourser</label>
-                                        <input name="montant" type="number" min="1" step="0.01" max="{{ $avance->reste_a_rembourser }}" value="{{ min($boutique->solde ?? 0, $avance->reste_a_rembourser) }}" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 outline-none" required>
+                                        <input name="montant" type="number" min="1" step="1" max="{{ (int) $avance->reste_a_rembourser }}" value="{{ (int) min($boutique->solde ?? 0, $avance->reste_a_rembourser) }}" class="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 outline-none" required>
                                         <button type="submit" class="w-full px-4 py-2 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 transition-colors">Rembourser</button>
                                     </form>
                                 </td>

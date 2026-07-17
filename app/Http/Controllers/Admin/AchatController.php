@@ -97,10 +97,15 @@ class AchatController extends Controller
 
         $request->validate($rules);
 
+        // Le FCFA n'a pas de subdivision utilisée en pratique : arrondir à l'unité
+        // évite qu'un prix unitaire à 2 décimales (ex. 3333.33 × 3) laisse un
+        // résidu de quelques centimes qui ne pourra jamais être soldé (la dette
+        // resterait ouverte indéfiniment malgré un "Restant : 0 FCFA" affiché).
         $montantTotal = 0;
         foreach ($request->lignes as $ligne) {
             $montantTotal += $ligne['quantite'] * $ligne['prix_unitaire'];
         }
+        $montantTotal = round($montantTotal);
 
         // Un achat payé depuis le solde personnel exige une trésorerie suffisante.
         if ($request->input('statut') === 'paye' && $isSoldeAdmin && $montantTotal > (float) Auth::user()->solde_personnel) {
@@ -359,10 +364,13 @@ class AchatController extends Controller
         $request->validate($rules);
 
         DB::transaction(function () use ($request, $achat) {
+            // Voir store() : arrondi à l'unité pour ne jamais laisser de résidu
+            // de quelques centimes impossible à solder.
             $montant_total = 0;
             foreach ($request->lignes as $ligne) {
                 $montant_total += $ligne['quantite'] * $ligne['prix_unitaire'];
             }
+            $montant_total = round($montant_total);
 
             $achat->update([
                 'fournisseur_id' => $request->fournisseur_id,
