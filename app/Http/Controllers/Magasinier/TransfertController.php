@@ -95,10 +95,47 @@ class TransfertController extends Controller
                     return;
                 }
 
-                \App\Models\Stock::consumeForSale($magasinId, $fresh->produit_id, $request->quantite_expediee, null);
+                // Sortie du stock du magasin (FIFO) et CAPTURE des prix des lots
+                // consommés : ils sont figés sur la demande pour recréer le lot à
+                // l'identique dans la boutique à la réception (coût préservé).
+                $consumed = \App\Models\Stock::consumeForSale($magasinId, $fresh->produit_id, $request->quantite_expediee, null);
+
+                $produit = \App\Models\Produit::find($fresh->produit_id);
+                $defaultCost = ($produit && (float) $produit->getRawOriginal('prix_achat') > 0)
+                    ? (float) $produit->getRawOriginal('prix_achat')
+                    : null;
+
+                $totalCost = 0;
+                $totalQty = 0;
+                $coutConnu = true;
+                $prixVente = null;
+                $prixGrossiste = null;
+
+                foreach ($consumed as $c) {
+                    $lot = $c['stock'];
+                    $q = (int) $c['quantite'];
+                    // Lot sans coût (inventaire d'avant le suivi des coûts) : repli
+                    // sur le prix d'achat par défaut du produit.
+                    $lotCost = $lot->prix_achat_unitaire ?? $defaultCost;
+                    if ($lotCost === null) {
+                        $coutConnu = false;
+                    }
+                    $totalCost += ((float) ($lotCost ?? 0)) * $q;
+                    $totalQty += $q;
+
+                    if ($prixVente === null && $lot->prix_vente_unitaire !== null) {
+                        $prixVente = (float) $lot->prix_vente_unitaire;
+                    }
+                    if ($prixGrossiste === null && $lot->prix_vente_grossiste_unitaire !== null) {
+                        $prixGrossiste = (float) $lot->prix_vente_grossiste_unitaire;
+                    }
+                }
 
                 $fresh->update([
                     'quantite_expediee' => $request->quantite_expediee,
+                    'prix_achat_unitaire' => ($coutConnu && $totalQty > 0) ? $totalCost / $totalQty : null,
+                    'prix_vente_unitaire' => $prixVente,
+                    'prix_vente_grossiste_unitaire' => $prixGrossiste,
                     'statut' => 'expediee',
                 ]);
             });

@@ -327,7 +327,14 @@ class VenteController extends Controller
 
         $grossistes = \App\Models\Grossiste::with('prixProduits')->get();
 
-        return view('boutiquier.ventes.edit', compact('vente', 'produits', 'grossistes'));
+        // Mécaniciens de la boutique : permet de rattacher/changer/retirer le
+        // mécanicien crédité lors de la modification du ticket.
+        $mecaniciens = \App\Models\User::where('role', 'mecanicien')
+            ->where('boutique_id', $boutiqueId)
+            ->orderBy('nom_utilisateur')
+            ->get();
+
+        return view('boutiquier.ventes.edit', compact('vente', 'produits', 'grossistes', 'mecaniciens'));
     }
 
     public function update(Request $request, Vente $vente)
@@ -349,6 +356,7 @@ class VenteController extends Controller
             'lignes.*.quantite' => 'required|integer|min:1',
             'is_grossiste' => 'sometimes|in:0,1',
             'grossiste_id' => 'nullable|exists:grossistes,id',
+            'mecanicien_id' => 'nullable|exists:users,id',
         ]);
 
         $isGrossiste = $request->input('is_grossiste') === '1';
@@ -391,15 +399,16 @@ class VenteController extends Controller
             ];
         }
 
-        // Le mécanicien reste porté par la vente (le formulaire d'édition ne le
-        // renvoie pas) : on le recharge pour recréditer sa commission après
-        // modification, sinon éditer un ticket effacerait sa marge.
-        $mecanicien = $vente->mecanicien_id
-            ? \App\Models\User::where('id', $vente->mecanicien_id)
+        // Mécanicien crédité : celui choisi dans le formulaire d'édition (qui peut
+        // le changer ou le retirer). En vente grossiste, aucun mécanicien. Le
+        // mécanicien doit appartenir à la boutique.
+        $mecanicien = null;
+        if (! $isGrossiste && $request->filled('mecanicien_id')) {
+            $mecanicien = \App\Models\User::where('id', $request->mecanicien_id)
                 ->where('role', 'mecanicien')
                 ->where('boutique_id', $boutiqueId)
-                ->first()
-            : null;
+                ->first();
+        }
         $commissionPct = $mecanicien
             ? (float) ($mecanicien->commission_percent ?? param('mecanicien_commission_percent', 0))
             : 0.0;
@@ -499,6 +508,7 @@ class VenteController extends Controller
             $vente->update([
                 'montant_total' => $newTotal,
                 'grossiste_id' => $grossisteId,
+                'mecanicien_id' => $mecanicien?->id,
             ]);
 
             $boutique = \App\Models\Boutique::find($boutiqueId);
