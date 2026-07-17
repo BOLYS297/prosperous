@@ -60,6 +60,24 @@
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
             </div>
+
+            {{-- Mécanicien crédité : uniquement en vente client (masqué en grossiste) --}}
+            @if($mecaniciens->isNotEmpty())
+                <div id="mecanicien_container" style="display: {{ old('is_grossiste', $vente->lignes->first()?->est_grossiste) ? 'none' : 'block' }};">
+                    <label for="mecanicien_id" class="block text-sm font-semibold text-slate-700 mb-2">
+                        <i class="ri-tools-line mr-1"></i> Mécanicien (commission sur bénéfice)
+                    </label>
+                    <select name="mecanicien_id" id="mecanicien_id" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Aucun</option>
+                        @foreach($mecaniciens as $mecanicien)
+                            <option value="{{ $mecanicien->id }}" {{ (string) old('mecanicien_id', $vente->mecanicien_id) === (string) $mecanicien->id ? 'selected' : '' }}>
+                                {{ $mecanicien->nom_utilisateur }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-slate-400 mt-1">Changer ou retirer le mécanicien recalcule sa commission sur cette vente.</p>
+                </div>
+            @endif
         </div>
 
         <div class="space-y-4 mb-6" id="vente-lignes-wrapper">
@@ -253,6 +271,15 @@
         container.style.display = this.checked ? 'block' : 'none';
         if (!this.checked) {
             document.getElementById('grossiste_id').value = '';
+        }
+        // Le mécanicien n'existe qu'en vente client : on le masque (et on le vide)
+        // en vente grossiste.
+        const mecaContainer = document.getElementById('mecanicien_container');
+        if (mecaContainer) {
+            mecaContainer.style.display = this.checked ? 'none' : 'block';
+            if (this.checked) {
+                document.getElementById('mecanicien_id').value = '';
+            }
         }
         updateTicketTotal();
     });
