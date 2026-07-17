@@ -21,50 +21,71 @@ class DebitValidationController extends Controller
      */
     public function confirmer(Request $request, DebitValidation $validation)
     {
-        $this->authorizeValidation($validation);
+        // Contrôle d'accès (pas une course) : le débit doit concerner ma boutique.
+        if ($validation->boutique_id !== Auth::user()->boutique_id) {
+            abort(403, 'Ce débit ne concerne pas votre boutique.');
+        }
 
-        DB::transaction(function () use ($validation) {
-            $boutique = $validation->boutique()->lockForUpdate()->first();
-            $boutique->decrement('solde', $validation->amount);
+        $alreadyProcessed = false;
 
-            if ($validation->source_type === 'achat') {
+        DB::transaction(function () use ($validation, &$alreadyProcessed) {
+            // Verrou + re-vérification atomique du statut : sans cela, un
+            // double-clic (ou un rejeu) débitait le solde et enregistrait le
+            // paiement DEUX fois — le contrôle isPending() se faisait hors
+            // transaction, donc deux requêtes concurrentes le passaient toutes
+            // les deux avant que l'une ne bascule le statut.
+            $fresh = DebitValidation::where('id', $validation->id)->lockForUpdate()->first();
+            if (! $fresh || ! $fresh->isPending()) {
+                $alreadyProcessed = true;
+                return;
+            }
+
+            $boutique = $fresh->boutique()->lockForUpdate()->first();
+            $boutique->decrement('solde', $fresh->amount);
+
+            if ($fresh->source_type === 'achat') {
                 // Enregistrer le paiement (l'achat devient réellement payé).
                 AchatPaiement::create([
-                    'achat_id' => $validation->source_id,
-                    'boutique_id' => $validation->boutique_id,
+                    'achat_id' => $fresh->source_id,
+                    'boutique_id' => $fresh->boutique_id,
                     'user_id' => Auth::id(),
-                    'montant' => $validation->amount,
-                    'description' => 'Paiement comptant validé pour l\'achat #' . $validation->source_id,
+                    'montant' => $fresh->amount,
+                    'description' => 'Paiement comptant validé pour l\'achat #' . $fresh->source_id,
                 ]);
-            } elseif ($validation->source_type === 'depense') {
-                $depense = Depense::find($validation->source_id);
+            } elseif ($fresh->source_type === 'depense') {
+                $depense = Depense::find($fresh->source_id);
                 if ($depense) {
                     $depense->update([
                         'statut' => 'approved',
                         'validated_at' => now(),
                     ]);
                 }
-            } elseif ($validation->source_type === 'recette') {
+            } elseif ($fresh->source_type === 'recette') {
                 // La recette quitte la caisse de la boutique et entre dans le
                 // solde personnel de l'administrateur qui l'a demandée.
                 \App\Models\AdminSoldeMouvement::enregistrer(
-                    $validation->initiator_id,
+                    $fresh->initiator_id,
                     'recette',
-                    (float) $validation->amount,
-                    $validation->motif ?: 'Récupération des recettes',
-                    $validation->boutique_id,
+                    (float) $fresh->amount,
+                    $fresh->motif ?: 'Récupération des recettes',
+                    $fresh->boutique_id,
                     'recette',
-                    $validation->id
+                    $fresh->id
                 );
             }
 
-            $validation->update([
+            $fresh->update([
                 'status' => 'confirmed',
                 'responder_id' => Auth::id(),
                 'responded_at' => now(),
             ]);
         });
 
+        if ($alreadyProcessed) {
+            return back()->with('error', 'Ce débit a déjà été traité.');
+        }
+
+        $validation->refresh();
         $this->notifyAdmin($validation, true);
 
         LogActivite::create([
@@ -82,11 +103,23 @@ class DebitValidationController extends Controller
      */
     public function contester(Request $request, DebitValidation $validation)
     {
-        $this->authorizeValidation($validation);
+        if ($validation->boutique_id !== Auth::user()->boutique_id) {
+            abort(403, 'Ce débit ne concerne pas votre boutique.');
+        }
 
-        DB::transaction(function () use ($validation) {
-            if ($validation->source_type === 'depense') {
-                $depense = Depense::find($validation->source_id);
+        $alreadyProcessed = false;
+
+        DB::transaction(function () use ($validation, &$alreadyProcessed) {
+            // Verrou + re-vérification atomique : une contestation ne rejette la
+            // dépense et ne notifie l'admin qu'une seule fois.
+            $fresh = DebitValidation::where('id', $validation->id)->lockForUpdate()->first();
+            if (! $fresh || ! $fresh->isPending()) {
+                $alreadyProcessed = true;
+                return;
+            }
+
+            if ($fresh->source_type === 'depense') {
+                $depense = Depense::find($fresh->source_id);
                 if ($depense) {
                     $depense->update([
                         'statut' => 'rejected',
@@ -95,13 +128,18 @@ class DebitValidationController extends Controller
                 }
             }
 
-            $validation->update([
+            $fresh->update([
                 'status' => 'rejected',
                 'responder_id' => Auth::id(),
                 'responded_at' => now(),
             ]);
         });
 
+        if ($alreadyProcessed) {
+            return back()->with('error', 'Ce débit a déjà été traité.');
+        }
+
+        $validation->refresh();
         $this->notifyAdmin($validation, false);
 
         LogActivite::create([
@@ -111,17 +149,6 @@ class DebitValidationController extends Controller
         ]);
 
         return back()->with('success', 'Débit contesté. L\'administrateur a été notifié ; votre solde n\'a pas été débité.');
-    }
-
-    protected function authorizeValidation(DebitValidation $validation): void
-    {
-        if ($validation->boutique_id !== Auth::user()->boutique_id) {
-            abort(403, 'Ce débit ne concerne pas votre boutique.');
-        }
-
-        if (! $validation->isPending()) {
-            abort(409, 'Ce débit a déjà été traité.');
-        }
     }
 
     protected function notifyAdmin(DebitValidation $validation, bool $confirmed): void

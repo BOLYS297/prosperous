@@ -294,42 +294,66 @@ class SoldeController extends Controller
         ]);
 
         $admin = Auth::user();
-
-        if ((int) $achat->debit_admin_id !== (int) $admin->id || $achat->statut !== 'dette') {
-            return back()->with('error', 'Cette dette ne vous est pas imputée ou est déjà réglée.');
-        }
-
         $montant = round((float) $request->input('montant'), 2);
 
-        if ($montant > $achat->reste_a_payer) {
+        $pasImputee = false;
+        $tropGrand = false;
+        $soldeInsuffisant = false;
+
+        DB::transaction(function () use ($achat, $admin, $montant, &$pasImputee, &$tropGrand, &$soldeInsuffisant) {
+            // Verrou + re-vérification atomique : sans cela, deux remboursements
+            // concurrents passaient tous deux les contrôles avant bascule, d'où
+            // un double débit du solde personnel et une dette surpayée.
+            $fresh = \App\Models\Achat::where('id', $achat->id)->lockForUpdate()->first();
+
+            if (! $fresh || (int) $fresh->debit_admin_id !== (int) $admin->id || $fresh->statut !== 'dette') {
+                $pasImputee = true;
+                return;
+            }
+
+            if ($montant > $fresh->reste_a_payer) {
+                $tropGrand = true;
+                return;
+            }
+
+            $fraisAdmin = User::where('id', $admin->id)->lockForUpdate()->first();
+            if ($montant > (float) $fraisAdmin->solde_personnel) {
+                $soldeInsuffisant = true;
+                return;
+            }
+
+            \App\Models\AchatPaiement::create([
+                'achat_id' => $fresh->id,
+                'boutique_id' => null,
+                'user_id' => $admin->id,
+                'montant' => $montant,
+                'description' => 'Remboursement depuis le solde personnel de l\'administrateur',
+            ]);
+
+            AdminSoldeMouvement::enregistrer(
+                $admin->id,
+                'remboursement',
+                -$montant,
+                "Remboursement de l'achat #{$fresh->id}",
+                null,
+                'achat',
+                $fresh->id
+            );
+
+            $fresh->refresh();
+            if ($fresh->reste_a_payer <= 0) {
+                $fresh->update(['statut' => 'paye']);
+            }
+        });
+
+        if ($pasImputee) {
+            return back()->with('error', 'Cette dette ne vous est pas imputée ou est déjà réglée.');
+        }
+        if ($tropGrand) {
             return back()->with('error', 'Le montant dépasse le reste à payer.');
         }
-
-        if ($montant > (float) $admin->solde_personnel) {
+        if ($soldeInsuffisant) {
             return back()->with('error', 'Solde personnel insuffisant.');
-        }
-
-        \App\Models\AchatPaiement::create([
-            'achat_id' => $achat->id,
-            'boutique_id' => null,
-            'user_id' => $admin->id,
-            'montant' => $montant,
-            'description' => 'Remboursement depuis le solde personnel de l\'administrateur',
-        ]);
-
-        AdminSoldeMouvement::enregistrer(
-            $admin->id,
-            'remboursement',
-            -$montant,
-            "Remboursement de l'achat #{$achat->id}",
-            null,
-            'achat',
-            $achat->id
-        );
-
-        $achat->refresh();
-        if ($achat->reste_a_payer <= 0) {
-            $achat->update(['statut' => 'paye']);
         }
 
         return back()->with('success', 'Remboursement de ' . money_format_app($montant) . ' enregistré.');
