@@ -30,13 +30,12 @@ class SettingsController extends Controller
             'company_phone' => 'nullable|string|max:50',
             'ticket_footer' => 'nullable|string|max:255',
             'mecanicien_commission_percent' => 'nullable|numeric|min:0|max:100',
-            'majoration_hors_heures_percent' => 'nullable|numeric|min:0|max:500',
             'logo' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
             'banner' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:4096',
         ]);
 
         // Champs texte
-        foreach (['company_name', 'company_immatriculation', 'currency', 'company_address', 'company_phone', 'ticket_footer', 'mecanicien_commission_percent', 'majoration_hors_heures_percent'] as $key) {
+        foreach (['company_name', 'company_immatriculation', 'currency', 'company_address', 'company_phone', 'ticket_footer', 'mecanicien_commission_percent'] as $key) {
             Setting::set($key, $validated[$key] ?? '');
         }
 

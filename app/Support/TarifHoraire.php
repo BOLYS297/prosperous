@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\HoraireConnexion;
 use App\Models\Produit;
-use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -30,10 +29,12 @@ class TarifHoraire
     }
 
     /**
-     * Prix majoré d'un produit :
-     *   1) prix « hors heures » saisi sur le produit ;
-     *   2) sinon, prix normal + pourcentage global des Paramètres.
-     * Ne descend jamais sous le prix normal.
+     * Prix appliqué en heures supplémentaires.
+     *
+     * UNIQUEMENT le prix « heures supplémentaires » saisi par l'admin SUR LE
+     * PRODUIT. Si aucun prix n'est défini pour cet article, le prix reste le prix
+     * normal — jamais de majoration automatique par pourcentage (l'admin doit
+     * décider article par article). Ne descend jamais sous le prix normal.
      */
     public static function prixMajore(Produit $produit, float $prixStandard): float
     {
@@ -43,12 +44,7 @@ class TarifHoraire
             return max($prixStandard, (float) $base);
         }
 
-        $pct = (float) Setting::get('majoration_hors_heures_percent', 0);
-        if ($pct <= 0) {
-            return $prixStandard;
-        }
-
-        return round($prixStandard * (1 + $pct / 100), 2);
+        return $prixStandard;
     }
 
     /** Session principale en cours pour cet employé (null s'il est en heures supp.). */
