@@ -88,7 +88,7 @@
         </div>
 
         <div class="mb-8">
-            <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente hors heures ({{ param("currency") }})</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente en heures supplémentaires ({{ param("currency") }})</label>
             <div class="relative max-w-xs">
                 <input type="number" step="0.01" min="0" name="prix_vente_hors_heures" value="{{ old('prix_vente_hors_heures', $produit->prix_vente_hors_heures ?? '') }}" class="w-full pl-4 pr-16 py-3 border border-slate-300 rounded-xl bg-white/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optionnel">
                 <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">
@@ -96,10 +96,9 @@
                 </div>
             </div>
             <p class="text-xs text-slate-500 mt-2">
-                Prix appliqué sur les <strong>tranches horaires marquées « tarif majoré »</strong>
-                (<a href="{{ route('admin.horaires.index') }}" class="underline">Tranches horaires</a>).
-                La différence avec le prix de vente revient à l'employé qui réalise la vente.
-                Laissez vide pour appliquer la majoration par défaut ({{ param('majoration_hors_heures_percent', 0) }} %) définie dans <strong>Paramètres</strong>.
+                Prix appliqué <strong>en heures supplémentaires</strong> (ventes réalisées en dehors de la session
+                principale de l'employé). La différence avec le prix de vente normal revient à l'employé qui réalise la vente.
+                <strong>Laissez vide</strong> pour que cet article reste vendu au <strong>prix normal</strong> en heures supplémentaires.
             </p>
         </div>
 

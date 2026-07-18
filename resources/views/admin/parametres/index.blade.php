@@ -74,24 +74,14 @@
         </div>
     </div>
 
-    <h2 class="text-xl font-bold text-slate-800 mt-8 mb-2 flex items-center">
-        <i class="ri-time-line text-2xl text-blue-600 mr-2"></i> Tarif hors heures
-    </h2>
-    <p class="text-sm text-slate-500 mb-6">
-        Les heures majorées se définissent dans
-        <a href="{{ route('admin.horaires.index') }}" class="text-blue-600 underline font-semibold">Tranches horaires</a> :
-        marquez une tranche « tarif majoré » et le point de vente y applique automatiquement le <strong>prix hors heures</strong>.
-        La différence avec le prix normal est <strong>reversée à l'employé</strong> qui réalise la vente (heures supplémentaires),
-        cumulée et payée en fin de mois. Ici, vous réglez seulement <strong>le montant</strong> de cette majoration.
-    </p>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">Majoration par défaut (%)</label>
-            <input type="number" step="0.01" min="0" max="500" name="majoration_hors_heures_percent" value="{{ old('majoration_hors_heures_percent', $settings['majoration_hors_heures_percent'] ?? 20) }}"
-                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <p class="text-xs text-slate-400 mt-1">Appliquée aux produits <strong>sans</strong> prix hors heures saisi. 0 = aucune majoration.</p>
-        </div>
+    <div class="mt-8 mb-2 p-4 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-800">
+        <p class="font-semibold flex items-center mb-1"><i class="ri-time-line text-lg mr-2"></i> Prix des heures supplémentaires</p>
+        <p>
+            Le prix appliqué en heures supplémentaires se définit <strong>article par article</strong>, sur la fiche
+            produit (champ « prix heures supplémentaires »). Tant qu'aucun prix n'y est saisi, l'article <strong>reste
+            vendu au prix normal</strong> pendant les heures supplémentaires — aucune majoration automatique.
+            La différence éventuelle avec le prix normal revient à l'employé qui réalise la vente, cumulée et payée en fin de mois.
+        </p>
     </div>
 
     <h2 class="text-xl font-bold text-slate-800 mt-8 mb-6 flex items-center">
