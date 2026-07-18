@@ -25,15 +25,18 @@ if ($user && in_array($user->role, ['magasinier', 'boutiquier'], true)) {
 @if($shiftCountdownSeconds)
     <div x-data="{ remaining: {{ $shiftCountdownSeconds }}, minutes: '00', seconds: '00', timer: null, init() { this.updateTime(); this.timer = setInterval(() => this.updateTime(), 1000); }, updateTime() { if (this.remaining <= 0) { clearInterval(this.timer); this.remaining = 0; } this.minutes = String(Math.floor(this.remaining / 60)).padStart(2, '0'); this.seconds = String(this.remaining % 60).padStart(2, '0'); this.remaining -= 1; } }"
          x-init="init()"
-         class="mb-6 rounded-2xl bg-amber-100 border border-amber-200 p-4 shadow-sm text-amber-900">
+         class="mb-6 rounded-2xl bg-indigo-50 border border-indigo-200 p-4 shadow-sm text-indigo-900">
         <div class="flex items-start gap-3">
             <div class="mt-0.5">
-                <i class="ri-time-line text-3xl"></i>
+                <i class="ri-time-line text-3xl text-indigo-600"></i>
             </div>
             <div>
-                <h2 class="font-semibold text-lg">Fin de votre tranche horaire</h2>
-                <p class="text-sm text-amber-700 mt-1">Votre session prendra fin automatiquement dans <strong x-text="minutes + ':' + seconds"></strong>.</p>
-                <p class="text-xs text-amber-700 mt-1">Pensez à enregistrer votre travail et à clôturer vos opérations avant la fin de votre tranche.</p>
+                <h2 class="font-semibold text-lg">Bientôt la fin de votre session normale</h2>
+                <p class="text-sm text-indigo-700 mt-1">Votre session normale se termine dans <strong x-text="minutes + ':' + seconds"></strong>.</p>
+                <p class="text-sm font-medium text-indigo-800 mt-1">
+                    <i class="ri-hand-coin-line"></i> Vous n'êtes pas déconnecté : vous pouvez continuer à vendre en
+                    <strong>heures supplémentaires</strong> si vous le souhaitez — les ventes concernées vous sont majorées à votre profit.
+                </p>
             </div>
         </div>
     </div>
