@@ -254,7 +254,7 @@
                 <li>Toute vente réalisée <strong>en dehors de la session principale</strong> — avant le début ou après la fin — est automatiquement <strong>majorée</strong>. Aucune tranche spéciale à créer.</li>
                 <li>La différence avec le prix normal <strong>revient à l'employé</strong> qui réalise la vente, cumulée et payée en fin de mois.</li>
                 <li>Exemple : session <strong>07:00 – 19:00</strong>. Une vente à 06:30 (arrivé plus tôt) ou à 19:30 (reparti plus tard) est majorée. À 19:00 pile le prix reste normal ; la majoration démarre à 19:01.</li>
-                <li>Le montant de la majoration se règle par produit (« prix hors heures ») ou globalement en pourcentage dans <a href="{{ route('admin.parametres.index') }}" class="underline font-semibold">Paramètres</a>.</li>
+                <li>Le montant de la majoration se règle par produit (« prix hors heures ») ou globalement en pourcentage dans <a href="{{ route('admin.parametres.edit') }}" class="underline font-semibold">Paramètres</a>.</li>
             </ul>
         </div>
     </div>
