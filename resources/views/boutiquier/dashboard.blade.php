@@ -28,20 +28,9 @@
         </div>
     @endif
 
-    @if(isset($shiftWarning) && $shiftWarning)
-        <div class="mb-6 rounded-2xl bg-amber-100 border border-amber-200 p-5 shadow-sm text-amber-900">
-            <div class="flex items-start gap-3">
-                <div class="mt-0.5">
-                    <i class="ri-time-line text-3xl"></i>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-lg">Fin de tranche horaire imminente</h3>
-                    <p class="text-sm text-amber-700 mt-1">Votre tranche se termine à <strong>{{ $shiftWarning['end'] }}</strong>. Il reste <strong>{{ $shiftWarning['minutes'] }} min {{ $shiftWarning['seconds'] }} s</strong>.</p>
-                    <p class="text-xs text-amber-700 mt-1">Sauvegardez vos actions et préparez-vous à clôturer votre session.</p>
-                </div>
-            </div>
-        </div>
-    @endif
+    {{-- Le rappel de fin de session (avec rappel « heures supplémentaires
+         possibles ») est affiché par le composant shift-countdown du layout,
+         sur toutes les pages : pas de doublon ici. --}}
 
     @if(isset($pendingValidations) && $pendingValidations->isNotEmpty())
         <div class="mb-6 glass-panel rounded-2xl p-6 bg-rose-50 border border-rose-200">
