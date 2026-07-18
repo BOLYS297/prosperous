@@ -9,8 +9,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\AdminValidationNotification;
 use App\Models\Deduction;
+use App\Models\DeductionSetting;
 use App\Models\HoraireConnexion;
 use App\Models\LogActivite;
+use App\Models\User;
 
 class LoginController extends Controller
 {
@@ -103,6 +105,14 @@ class LoginController extends Controller
                 }
             }
 
+            // Rattrapage : si, lors de sa dernière présence (un jour passé), l'employé
+            // a quitté l'application AVANT la fin de sa session sans se déconnecter,
+            // on crée maintenant la déduction de départ anticipé qui avait été
+            // manquée faute de clic « Déconnexion ».
+            if (in_array($user->role, ['magasinier', 'boutiquier'], true)) {
+                $this->rattraperDepartManque($user);
+            }
+
             // Enregistrer la connexion dans les logs
             LogActivite::create([
                 'user_id' => $user->id,
@@ -143,32 +153,86 @@ class LoginController extends Controller
         return redirect('/');
     }
 
+    /**
+     * Départ anticipé sur déconnexion explicite : l'employé clique « Déconnexion »
+     * avant la fin de sa session en cours.
+     */
     protected function createEarlyLogoutDeduction($user, Carbon $logoutTime): void
     {
-        $interval = HoraireConnexion::getCurrentIntervalForUser($user);
+        $session = HoraireConnexion::getCurrentIntervalForUser($user);
 
-        if (! $interval) {
+        if ($session) {
+            $this->enregistrerDepartAnticipe($user, $session, $logoutTime);
+        }
+    }
+
+    /**
+     * Rattrapage du départ anticipé « silencieux » (l'employé a fermé
+     * l'application sans se déconnecter). À la connexion suivante, on regarde sa
+     * DERNIÈRE présence : si elle date d'un jour passé et tombe à l'intérieur
+     * d'une session (donc avant sa fin), le départ anticipé correspondant est
+     * enregistré rétroactivement à l'heure de cette dernière présence.
+     */
+    protected function rattraperDepartManque(User $user): void
+    {
+        if (! $user->last_seen_at) {
             return;
         }
 
-        $scheduledEnd = Carbon::createFromFormat('H:i:s', $interval->heure_fin, $logoutTime->getTimezone())
-            ->setDate($logoutTime->year, $logoutTime->month, $logoutTime->day);
+        $lastSeen = Carbon::parse($user->last_seen_at);
 
-        if (! $logoutTime->lt($scheduledEnd)) {
+        // On ne traite qu'un jour PASSÉ : la session du jour même est encore en
+        // cours (ou sera soldée par la déconnexion / un futur rattrapage).
+        if ($lastSeen->isToday()) {
             return;
         }
 
-        $minutesEarly = (int) $logoutTime->diffInMinutes($scheduledEnd);
-        $hourlyAmount = \App\Models\DeductionSetting::getHourlyAmount();
+        // Session active à l'instant de la dernière présence (même jour de semaine
+        // + heure comprise dans la tranche). Null = dernière présence hors session
+        // (heures supp ou repos) : aucun départ anticipé à imputer.
+        $session = HoraireConnexion::sessionAt($user, $lastSeen);
 
-        if ($minutesEarly <= 0 || $hourlyAmount <= 0) {
+        if ($session) {
+            $this->enregistrerDepartAnticipe($user, $session, $lastSeen);
+        }
+    }
+
+    /**
+     * Cœur commun : crée une déduction de départ anticipé pour la session donnée
+     * si l'heure de départ est antérieure à la fin de session. Idempotent : une
+     * seule déduction de départ par employé et par jour.
+     */
+    protected function enregistrerDepartAnticipe(User $user, HoraireConnexion $session, Carbon $departTime): void
+    {
+        $scheduledEnd = Carbon::createFromFormat('H:i:s', $session->heure_fin, $departTime->getTimezone())
+            ->setDate($departTime->year, $departTime->month, $departTime->day);
+
+        // Parti à l'heure ou plus tard : rien à pénaliser.
+        if (! $departTime->lt($scheduledEnd)) {
             return;
         }
 
-        // Calcul précis à la minute : déduction au prorata du nombre de minutes
+        $hourlyAmount = DeductionSetting::getHourlyAmount();
+        if ($hourlyAmount <= 0) {
+            return;
+        }
+
+        $minutesEarly = (int) $departTime->diffInMinutes($scheduledEnd);
+        if ($minutesEarly <= 0) {
+            return;
+        }
+
+        // Anti-doublon : au plus une déduction de départ anticipé par jour, quel
+        // que soit son statut (protège aussi contre une double déconnexion).
+        $dejaEnregistre = Deduction::where('user_id', $user->id)
+            ->where('event_type', 'logout')
+            ->whereDate('actual_login_at', $departTime->toDateString())
+            ->exists();
+        if ($dejaEnregistre) {
+            return;
+        }
+
         $deductionAmount = (int) round(($minutesEarly / 60.0) * $hourlyAmount);
-
-        // Pour l'affichage : séparer heures complètes et minutes restantes
         $hoursEarly = intdiv($minutesEarly, 60);
         $minutesRemaining = $minutesEarly % 60;
 
@@ -176,15 +240,16 @@ class LoginController extends Controller
             'user_id' => $user->id,
             'amount' => $deductionAmount,
             'minutes_late' => $minutesEarly,
-            'scheduled_start' => $interval->heure_fin,
+            'scheduled_start' => $session->heure_fin,
             'event_type' => 'logout',
-            'actual_login_at' => $logoutTime,
-            'actual_logout_at' => $logoutTime,
+            'actual_login_at' => $departTime,
+            'actual_logout_at' => $departTime,
             'status' => 'pending',
-            'description' => "Déconnexion anticipée de {$hoursEarly} heure(s) et {$minutesRemaining} minute(s) avant la fin de journée",
+            'description' => "Départ anticipé de {$hoursEarly} heure(s) et {$minutesRemaining} minute(s) avant la fin de journée",
         ]);
-        // Notifier les administrateurs pour validation (comme pour les connexions tardives)
-        $adminUsers = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
+
+        // Notifier les administrateurs pour validation (comme pour les retards)
+        $adminUsers = User::whereIn('role', ['admin', 'super_admin'])->get();
         if ($adminUsers->isNotEmpty()) {
             try {
                 Notification::send($adminUsers, new AdminValidationNotification(
@@ -194,7 +259,6 @@ class LoginController extends Controller
                     route('admin.dashboard')
                 ));
             } catch (\Throwable $e) {
-                // Ne jamais bloquer la déconnexion à cause d'une notification
                 report($e);
             }
         }

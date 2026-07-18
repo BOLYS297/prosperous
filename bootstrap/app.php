@@ -33,4 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Fiabilise la resynchronisation hors-ligne : convertit le résultat des
         // actions rejouées (en-tête X-Offline-Sync) en JSON succès/échec.
         $middleware->appendToGroup('web', \App\Http\Middleware\HandleOfflineSync::class);
+
+        // Trace la dernière présence de l'employé (throttlé) pour détecter un
+        // départ anticipé sans déconnexion.
+        $middleware->appendToGroup('web', \App\Http\Middleware\UpdateLastSeen::class);
     })->create();
