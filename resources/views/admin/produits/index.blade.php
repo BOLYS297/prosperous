@@ -113,17 +113,31 @@
                         <td class="p-4 text-slate-700">
                             @php
                                 $magasinStock = $produit->stocks->where('boutique.type', 'magasin')->sum('quantite');
-                                $boutiqueStocks = $produit->stocks->where('boutique.type', 'boutique');
                                 $totalStock = $produit->stocks->sum('quantite');
+
+                                // Le stock est géré en LOTS FIFO : une même boutique en possède
+                                // plusieurs pour un même produit. On regroupe par boutique et on
+                                // additionne — sinon la boutique apparaît en double — et on masque
+                                // celles sans stock (lots vidés par les ventes, qui affichaient « : 0 »).
+                                $stockParBoutique = $produit->stocks
+                                    ->where('boutique.type', 'boutique')
+                                    ->groupBy('boutique_id')
+                                    ->map(fn ($lots) => (object) [
+                                        'nom' => $lots->first()->boutique->nom ?? 'Boutique',
+                                        'quantite' => $lots->sum('quantite'),
+                                    ])
+                                    ->filter(fn ($b) => $b->quantite > 0)
+                                    ->sortBy('nom')
+                                    ->values();
                             @endphp
                             <div class="text-sm font-semibold">{{ $totalStock }} pcs</div>
                             <div class="text-xs text-slate-500 mt-1">
                                 Magasin : {{ $magasinStock }}
                             </div>
-                            @if($boutiqueStocks->isNotEmpty())
+                            @if($stockParBoutique->isNotEmpty())
                                 <div class="mt-2 flex flex-wrap gap-1">
-                                    @foreach($boutiqueStocks as $stock)
-                                        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px]">{{ $stock->boutique->nom ?? 'Boutique' }}: {{ $stock->quantite }}</span>
+                                    @foreach($stockParBoutique as $boutiqueStock)
+                                        <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px]">{{ $boutiqueStock->nom }}: {{ $boutiqueStock->quantite }}</span>
                                     @endforeach
                                 </div>
                             @endif
