@@ -27,6 +27,29 @@ class BeneficeController extends Controller
         $parBoutique = $this->agreger($date, $date);
         $boutiques = Boutique::orderBy('type')->orderBy('nom')->get()->keyBy('id');
 
+        // Détail des PIÈCES vendues ce jour, par point de vente : un clic sur la
+        // ligne d'une boutique déplie la liste (quantité, CA, coût, bénéfice par
+        // pièce). Mêmes règles que l'agrégat : coût figé requis pour le bénéfice.
+        $piecesParBoutique = VenteLigne::query()
+            ->join('ventes', 'ventes.id', '=', 'vente_lignes.vente_id')
+            // leftJoin : une pièce supprimée du catalogue ne doit pas faire
+            // disparaître ses ventes du détail.
+            ->leftJoin('produits', 'produits.id', '=', 'vente_lignes.produit_id')
+            ->whereNull('ventes.deleted_at')
+            ->whereBetween('ventes.created_at', [(clone $date)->startOfDay(), (clone $date)->endOfDay()])
+            ->selectRaw('ventes.boutique_id')
+            ->selectRaw("COALESCE(produits.nom, 'Pièce supprimée') as produit_nom")
+            ->selectRaw('produits.reference as produit_reference')
+            ->selectRaw('SUM(vente_lignes.quantite) as quantite')
+            ->selectRaw('SUM(vente_lignes.quantite * vente_lignes.prix_unitaire) as ca')
+            ->selectRaw('SUM(CASE WHEN vente_lignes.prix_achat_unitaire IS NOT NULL THEN vente_lignes.quantite * vente_lignes.prix_unitaire ELSE 0 END) as ca_calculable')
+            ->selectRaw('SUM(CASE WHEN vente_lignes.prix_achat_unitaire IS NOT NULL THEN vente_lignes.quantite * vente_lignes.prix_achat_unitaire ELSE 0 END) as cout')
+            ->selectRaw('SUM(CASE WHEN vente_lignes.prix_achat_unitaire IS NULL THEN 1 ELSE 0 END) as lignes_sans_cout')
+            ->groupBy('ventes.boutique_id', 'vente_lignes.produit_id', 'produits.nom', 'produits.reference')
+            ->orderByRaw('SUM(vente_lignes.quantite * vente_lignes.prix_unitaire) DESC')
+            ->get()
+            ->groupBy('boutique_id');
+
         $global = [
             'ca_total' => $parBoutique->sum('ca_total'),
             'ca_calculable' => $parBoutique->sum('ca_calculable'),
@@ -49,7 +72,7 @@ class BeneficeController extends Controller
         }
         $maxTendance = max(1, $tendance->max('benefice'));
 
-        return view('admin.benefices.index', compact('date', 'parBoutique', 'boutiques', 'global', 'tendance', 'maxTendance'));
+        return view('admin.benefices.index', compact('date', 'parBoutique', 'boutiques', 'global', 'tendance', 'maxTendance', 'piecesParBoutique'));
     }
 
     /** Agrégat des ventes par boutique entre deux dates (incluses). */
