@@ -72,8 +72,8 @@
 
         <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div class="flex-1">
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif (facultatif)</label>
-                <input type="text" name="motif" maxlength="255" placeholder="Récupération des recettes" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif</label>
+                <input type="text" name="motif" maxlength="255" required placeholder="Récupération des recettes" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium flex items-center justify-center">
                 <i class="ri-send-plane-fill mr-2"></i> Demander la récupération
@@ -133,8 +133,8 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif (facultatif)</label>
-                <input type="text" name="motif" maxlength="255" placeholder="Approvisionnement en cash"
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif</label>
+                <input type="text" name="motif" maxlength="255" required placeholder="Approvisionnement en cash"
                     class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
 
@@ -163,8 +163,8 @@
                     class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif (facultatif)</label>
-                <input type="text" name="motif" maxlength="255" placeholder="Retrait du solde personnel" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Motif</label>
+                <input type="text" name="motif" maxlength="255" placeholder="Retrait du solde personnel" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500">
             </div>
             <button type="submit" onclick="return confirm('Confirmer ce retrait de votre solde personnel ?')"
                 class="w-full px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 font-medium">
