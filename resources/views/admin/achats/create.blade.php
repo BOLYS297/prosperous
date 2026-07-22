@@ -146,6 +146,10 @@
                         <label class="block text-xs font-medium text-slate-500 mb-1">Prix Grossiste</label>
                         <input type="number" step="0.01" :name="`lignes[${index}][prix_vente_grossiste]`" x-model="ligne.prix_vente_grossiste" placeholder="Optionnel" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
                     </div>
+                    <div class="w-32">
+                        <label class="block text-xs font-medium text-slate-500 mb-1" title="Prix appliqué quand la vente a lieu en heures supplémentaires. Vide = prix normal.">Prix H. Supp</label>
+                        <input type="number" step="0.01" min="0" :name="`lignes[${index}][prix_vente_hors_heures]`" x-model="ligne.prix_vente_hors_heures" placeholder="Optionnel" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    </div>
                     <div class="w-24">
                         <label class="block text-xs font-medium text-slate-500 mb-1">Qté</label>
                         <input type="number" min="1" :name="`lignes[${index}][quantite]`" x-model="ligne.quantite" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
@@ -183,7 +187,7 @@
             statut: 'paye',
             source: 'boutique',
             lignes: [
-                { produit_id: '', prix_unitaire: 0, prix_vente: 0, prix_vente_grossiste: '', quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' }
+                { produit_id: '', prix_unitaire: 0, prix_vente: 0, prix_vente_grossiste: '', prix_vente_hors_heures: '', quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' }
             ],
             init() {
                 // Initialiser la visibilité du champ debit_boutique_id au chargement
@@ -200,7 +204,7 @@
                 }
             },
             addLine() {
-                this.lignes.push({ produit_id: '', prix_unitaire: 0, prix_vente: 0, prix_vente_grossiste: '', quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' });
+                this.lignes.push({ produit_id: '', prix_unitaire: 0, prix_vente: 0, prix_vente_grossiste: '', prix_vente_hors_heures: '', quantite: 1, showSuggestions: false, suggestions: [], selectedIndex: -1, searchValue: '' });
             },
             removeLine(index) {
                 if(this.lignes.length > 1) {
@@ -213,6 +217,7 @@
                 if(produit) {
                     this.lignes[index].prix_unitaire = produit.prix_achat;
                     this.lignes[index].prix_vente = produit.prix_vente ?? produit.prix_achat;
+                    this.lignes[index].prix_vente_hors_heures = produit.prix_vente_hors_heures ?? '';
                 }
             },
             searchProduits(query, index) {
@@ -234,7 +239,8 @@
                     nom: p.nom,
                     reference: p.reference,
                     prix_achat: p.prix_achat,
-                    prix_vente: p.prix_vente
+                    prix_vente: p.prix_vente,
+                    prix_vente_hors_heures: p.prix_vente_hors_heures
                 })).slice(0, 20);
 
                 ligne.showSuggestions = ligne.suggestions.length > 0;
@@ -267,6 +273,7 @@
                 ligne.produit_id = item.id;
                 ligne.prix_unitaire = item.prix_achat;
                 ligne.prix_vente = item.prix_vente ?? item.prix_achat;
+                ligne.prix_vente_hors_heures = item.prix_vente_hors_heures ?? '';
                 ligne.showSuggestions = false;
                 ligne.suggestions = [];
                 ligne.searchValue = '';
