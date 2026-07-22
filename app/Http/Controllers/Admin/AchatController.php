@@ -79,6 +79,7 @@ class AchatController extends Controller
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
             'lignes.*.prix_vente' => 'nullable|numeric|min:0',
             'lignes.*.prix_vente_grossiste' => 'nullable|numeric|min:0',
+            'lignes.*.prix_vente_hors_heures' => 'nullable|numeric|min:0',
         ];
 
         // Source du paiement / de la dette : une boutique, ou le solde personnel
@@ -134,6 +135,7 @@ class AchatController extends Controller
                     'prix_unitaire' => $ligne['prix_unitaire'],
                     'prix_vente' => isset($ligne['prix_vente']) && $ligne['prix_vente'] !== '' ? $ligne['prix_vente'] : null,
                     'prix_vente_grossiste' => isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== '' ? $ligne['prix_vente_grossiste'] : null,
+                    'prix_vente_hors_heures' => isset($ligne['prix_vente_hors_heures']) && $ligne['prix_vente_hors_heures'] !== '' ? $ligne['prix_vente_hors_heures'] : null,
                 ]);
 
                 // Mettre à jour les prix du produit (prix d'achat et prix de vente) en base
@@ -146,6 +148,11 @@ class AchatController extends Controller
                         }
                         if (isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== null && $ligne['prix_vente_grossiste'] !== '') {
                             $produit->prix_vente_grossiste = $ligne['prix_vente_grossiste'];
+                        }
+                        // Prix « heures supplémentaires » : rempli, il met à jour la
+                        // fiche produit ; vide, la valeur actuelle est conservée.
+                        if (isset($ligne['prix_vente_hors_heures']) && $ligne['prix_vente_hors_heures'] !== null && $ligne['prix_vente_hors_heures'] !== '') {
+                            $produit->prix_vente_hors_heures = $ligne['prix_vente_hors_heures'];
                         }
                         $produit->save();
                     }
@@ -353,6 +360,7 @@ class AchatController extends Controller
             'lignes.*.prix_unitaire' => 'required|numeric|min:0',
             'lignes.*.prix_vente' => 'nullable|numeric|min:0',
             'lignes.*.prix_vente_grossiste' => 'nullable|numeric|min:0',
+            'lignes.*.prix_vente_hors_heures' => 'nullable|numeric|min:0',
         ];
 
         if ($request->input('statut') === 'paye') {
@@ -390,6 +398,7 @@ class AchatController extends Controller
                     'prix_unitaire' => $ligne['prix_unitaire'],
                     'prix_vente' => isset($ligne['prix_vente']) && $ligne['prix_vente'] !== '' ? $ligne['prix_vente'] : null,
                     'prix_vente_grossiste' => isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== '' ? $ligne['prix_vente_grossiste'] : null,
+                    'prix_vente_hors_heures' => isset($ligne['prix_vente_hors_heures']) && $ligne['prix_vente_hors_heures'] !== '' ? $ligne['prix_vente_hors_heures'] : null,
                 ]);
 
                 try {
@@ -401,6 +410,11 @@ class AchatController extends Controller
                         }
                         if (isset($ligne['prix_vente_grossiste']) && $ligne['prix_vente_grossiste'] !== null && $ligne['prix_vente_grossiste'] !== '') {
                             $produit->prix_vente_grossiste = $ligne['prix_vente_grossiste'];
+                        }
+                        // Prix « heures supplémentaires » : rempli, il met à jour la
+                        // fiche produit ; vide, la valeur actuelle est conservée.
+                        if (isset($ligne['prix_vente_hors_heures']) && $ligne['prix_vente_hors_heures'] !== null && $ligne['prix_vente_hors_heures'] !== '') {
+                            $produit->prix_vente_hors_heures = $ligne['prix_vente_hors_heures'];
                         }
                         $produit->save();
                     }
