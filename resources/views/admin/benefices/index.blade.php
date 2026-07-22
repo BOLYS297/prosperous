@@ -106,10 +106,16 @@
                     @php
                         $benefice = $row->ca_calculable - $row->cout;
                         $margeB = $row->ca_calculable > 0 ? ($benefice / $row->ca_calculable) * 100 : 0;
+                        $pieces = $piecesParBoutique->get($row->boutique_id) ?? collect();
                     @endphp
-                    <tr class="border-b border-white/20 hover:bg-white/30">
+                    {{-- Ligne cliquable : déplie la liste des pièces vendues ce jour par cette boutique --}}
+                    <tr class="border-b border-white/20 hover:bg-white/40 cursor-pointer select-none"
+                        onclick="document.getElementById('pieces-{{ $row->boutique_id }}').classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('rotate-90');"
+                        title="Cliquer pour voir les pièces vendues">
                         <td class="p-4 font-bold text-slate-800">
+                            <i class="chevron ri-arrow-right-s-line text-lg align-middle mr-1 text-blue-600 transition-transform inline-block"></i>
                             {{ $boutiques[$row->boutique_id]->nom ?? 'Boutique #' . $row->boutique_id }}
+                            <span class="ml-2 text-[10px] font-semibold text-blue-600">{{ $pieces->count() }} pièce(s)</span>
                             @if($row->lignes_sans_cout > 0)
                                 <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold" title="Lignes sans coût enregistré, exclues du bénéfice">
                                     {{ $row->lignes_sans_cout }} ligne(s) hors calcul
@@ -120,6 +126,46 @@
                         <td class="p-4 text-right text-amber-700">{{ number_format($row->cout, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4 text-right font-black {{ $benefice < 0 ? 'text-rose-600' : 'text-emerald-600' }}">{{ number_format($benefice, 0, ',', ' ') }} {{ param("currency") }}</td>
                         <td class="p-4 text-right font-semibold text-blue-600">{{ number_format($margeB, 1, ',', ' ') }} %</td>
+                    </tr>
+                    {{-- Détail des pièces vendues (masqué par défaut) --}}
+                    <tr id="pieces-{{ $row->boutique_id }}" class="hidden border-b border-white/20 bg-slate-50/70">
+                        <td colspan="5" class="px-6 py-4">
+                            @if($pieces->isEmpty())
+                                <p class="text-sm text-slate-500">Aucune pièce détaillée pour cette journée.</p>
+                            @else
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="text-slate-500 border-b border-slate-200">
+                                            <th class="py-2 text-left font-semibold">Pièce</th>
+                                            <th class="py-2 text-right font-semibold">Qté vendue</th>
+                                            <th class="py-2 text-right font-semibold">Chiffre d'affaires</th>
+                                            <th class="py-2 text-right font-semibold">Coût</th>
+                                            <th class="py-2 text-right font-semibold">Bénéfice</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($pieces as $piece)
+                                            @php $benefPiece = $piece->ca_calculable - $piece->cout; @endphp
+                                            <tr class="border-b border-slate-100">
+                                                <td class="py-2 text-slate-800 font-medium">
+                                                    {{ $piece->produit_nom }}
+                                                    @if($piece->produit_reference)
+                                                        <span class="text-slate-400">({{ $piece->produit_reference }})</span>
+                                                    @endif
+                                                    @if($piece->lignes_sans_cout > 0)
+                                                        <span class="ml-1 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold" title="Vente(s) sans coût enregistré, exclue(s) du bénéfice">hors calcul</span>
+                                                    @endif
+                                                </td>
+                                                <td class="py-2 text-right font-bold text-slate-800">{{ number_format($piece->quantite, 0, ',', ' ') }}</td>
+                                                <td class="py-2 text-right text-slate-700">{{ number_format($piece->ca, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                                <td class="py-2 text-right text-amber-700">{{ number_format($piece->cout, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                                <td class="py-2 text-right font-bold {{ $benefPiece < 0 ? 'text-rose-600' : 'text-emerald-600' }}">{{ number_format($benefPiece, 0, ',', ' ') }} {{ param("currency") }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr>
